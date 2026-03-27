@@ -8,13 +8,15 @@ import { logoutAction } from '@/modules/auth/controller/auth.action';
 const MENUS = {
   student: [
     { name: 'Bảng Của Tớ', icon: '🏠', path: '/' },
-    { name: 'Bài Học', icon: '📚', path: '/courses' },
+    { name: 'Lớp học', icon: '📚', path: '/classes' },
     { name: 'Thử Thách', icon: '🏆', path: '/challenges' },
     { name: 'Nhật Ký', icon: '📝', path: '/diary' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   teacher: [
-    { name: 'Lớp Học', icon: '🏫', path: '/' },
+    { name: 'Trang chủ', icon: '🏠', path: '/' },
+    { name: 'Lớp Học', icon: '🏫', path: '/classes' },
+    { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
     { name: 'Học Sinh', icon: '👥', path: '/students' },
     { name: 'Báo Cáo', icon: '📊', path: '/reports' },
