@@ -22,6 +22,7 @@ const MENUS = {
   ],
   parent: [
     { name: 'Tổng Quan', icon: '👁️', path: '/' },
+    { name: 'Gia Đình', icon: '👨‍👩‍👧‍👦', path: '/family' },
     { name: 'Kết Quả', icon: '📈', path: '/progress' },
     { name: 'Lịch Học', icon: '📅', path: '/schedule' },
     { name: 'Nhắn Tin', icon: '💬', path: '/messages' },
