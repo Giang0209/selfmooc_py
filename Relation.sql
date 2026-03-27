@@ -379,3 +379,9 @@ CREATE TRIGGER trg_assignment_updated_at
 CREATE TRIGGER trg_submission_updated_at
     BEFORE UPDATE ON submission
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+-- Chạy lệnh ALTER TABLE này trong Postgres của bạn
+ALTER TABLE course 
+ADD COLUMN thumbnail_url TEXT,               -- Hình ảnh bìa (VD: con hổ, tên lửa, quả táo)
+ADD COLUMN theme_color VARCHAR(16),          -- Mã màu nền cho thẻ khóa học (VD: '#FFB6C1', '#87CEEB')
+ADD COLUMN is_published BOOLEAN DEFAULT FALSE; -- Ẩn/hiện khóa học (Giáo viên soạn xong mới bật lên)
