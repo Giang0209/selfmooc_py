@@ -11,18 +11,21 @@ const MENUS = {
     { name: 'Bài Học', icon: '📚', path: '/courses' },
     { name: 'Thử Thách', icon: '🏆', path: '/challenges' },
     { name: 'Nhật Ký', icon: '📝', path: '/diary' },
+    { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   teacher: [
     { name: 'Lớp Học', icon: '🏫', path: '/' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
     { name: 'Học Sinh', icon: '👥', path: '/students' },
     { name: 'Báo Cáo', icon: '📊', path: '/reports' },
+    { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   parent: [
     { name: 'Tổng Quan', icon: '👁️', path: '/' },
     { name: 'Kết Quả', icon: '📈', path: '/progress' },
     { name: 'Lịch Học', icon: '📅', path: '/schedule' },
     { name: 'Nhắn Tin', icon: '💬', path: '/messages' },
+    { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
 };
 

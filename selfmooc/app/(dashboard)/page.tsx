@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import Sidebar from '../components/layout/Sidebar';
+import Link from 'next/dist/client/link';
 
 // Hàm nhỏ xíu để giải mã JWT lấy Role mà không cần cài thêm thư viện
 function getRoleFromToken(token: string) {
@@ -40,12 +41,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <button className="w-12 h-12 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-full text-2xl hover:scale-110 transition-transform shadow-sm">
               🔔
             </button>
-            <div className="flex items-center gap-3 bg-purple-100 py-2 px-4 rounded-full cursor-pointer hover:shadow-md transition-all">
-               {/* Thay đổi Avatar theo Role cho vui */}
-              <div className="w-10 h-10 bg-purple-300 rounded-full flex items-center justify-center text-xl shadow-inner">
-                {role === 'teacher' ? '👩‍🏫' : role === 'parent' ? '👨‍👩‍👧' : '🐶'}
+            <Link href="/profile">
+              <div className="flex items-center gap-3 bg-purple-100 py-2 px-4 rounded-full cursor-pointer hover:shadow-md transition-all hover:-translate-y-1">
+                <div className="w-10 h-10 bg-purple-300 rounded-full flex items-center justify-center text-xl shadow-inner">
+                  {role === 'teacher' ? '👩‍🏫' : role === 'parent' ? '👨‍👩‍👧' : '🐶'}
+                </div>
+                <span className="font-bold text-purple-700 hidden sm:block">Hồ sơ</span>
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
