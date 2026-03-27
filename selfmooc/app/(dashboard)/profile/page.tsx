@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // Nhớ import 2 hàm mới vào đây nhé!
-import { getProfileAction, updateProfileAction, requestOtpAction, changePasswordAction } from '@/modules/auth/controller/profile.action'; 
+import { getProfileAction, updateProfileAction, requestOtpAction, changePasswordAction } from '@/modules/profile/controller/profile.action'; 
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -24,7 +24,13 @@ export default function ProfilePage() {
     async function loadProfile() {
       const res = await getProfileAction();
       if (res.success) {
-        if (res.data.dob) res.data.dob = new Date(res.data.dob).toISOString().split('T')[0];
+        if (res.data.dob) {
+          const d = new Date(res.data.dob);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          res.data.dob = `${yyyy}-${mm}-${dd}`;
+        }
         setProfile({ ...res.data, role: res.role }); 
       }
       setIsLoading(false);
@@ -121,8 +127,17 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">📞 Số điện thoại</label>
-                    <input name="phone" defaultValue={profile?.phone || ''} className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all" />
-                  </div>
+                    <input
+                      name="phone"
+                      defaultValue={profile?.phone || ''}
+                      disabled={profile?.role === 'student'}
+                      className={
+                        profile?.role === 'student'
+                          ? "w-full px-4 py-3 text-base border-2 border-gray-100 bg-gray-50 rounded-2xl text-gray-400 cursor-not-allowed focus:outline-none"
+                          : "w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all"
+                          }
+                      />
+                    </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">🎂 Ngày sinh nhật</label>
                     <input type="date" name="dob" defaultValue={profile?.dob || ''} className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all" />
