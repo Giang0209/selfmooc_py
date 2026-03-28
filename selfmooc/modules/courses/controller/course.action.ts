@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getTeacherCoursesService, createCourseService, togglePublishService } from '../services/course.service';
-import { getStudentCoursesService, getParentChildrenCoursesService } from '../services/course.service';
+import { getParentChildrenCoursesService } from '../services/course.service';
 import { updateCourseService, deleteCourseService } from '../services/course.service';
 // Tiện ích giải mã Token quen thuộc
 function getUserFromToken(token: string) {
@@ -83,23 +83,6 @@ export async function togglePublishAction(courseId: number, isPublished: boolean
     return { success: true, message: isPublished ? '👀 Đã mở cho học sinh xem!' : '🙈 Đã ẩn khóa học!' };
   } catch (error: any) {
     return { success: false, message: error.message };
-  }
-}
-
-// 4. ACTION CHO HỌC SINH LẤY LỚP HỌC
-export async function getMyLearningAction() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('session')?.value;
-  if (!token) return { success: false, data: [] };
-
-  const user = getUserFromToken(token);
-  if (!user || user.role !== 'student') return { success: false, data: [] };
-
-  try {
-    const courses = await getStudentCoursesService(user.id);
-    return { success: true, data: courses };
-  } catch (error) {
-    return { success: false, data: [] };
   }
 }
 

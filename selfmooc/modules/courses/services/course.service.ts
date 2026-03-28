@@ -28,10 +28,6 @@ export async function togglePublishService(courseId: number, teacherId: number, 
   return success;
 }
 
-export async function getStudentCoursesService(studentId: number) {
-  return await getStudentCoursesDB(studentId);
-}
-
 export async function getParentChildrenCoursesService(parentId: number) {
   return await getParentChildrenCoursesDB(parentId);
 }
