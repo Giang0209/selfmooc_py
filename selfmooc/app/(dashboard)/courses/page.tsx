@@ -1,5 +1,5 @@
 'use client';
-
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { 
   getMyCoursesAction, 
@@ -147,9 +147,12 @@ export default function TeacherCoursesPage() {
                   <button onClick={() => openEditModal(course)} className="flex-1 py-2 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-gray-200 border-2 border-gray-100 transition-colors">
                     ✏️ Sửa
                   </button>
-                  <button className="flex-1 py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 border-2 border-blue-50 transition-colors">
+                  <Link 
+                    href={`/courses/${course.course_id}`} 
+                    className="flex-1 flex items-center justify-center py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 border-2 border-blue-50 transition-colors"
+                  >
                     📚 Chi tiết
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
