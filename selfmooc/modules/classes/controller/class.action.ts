@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { getClassesByTeacherDB, createClassDB, removeStudentFromClassDB } from '../models/class.model';
+import { getClassesByTeacherDB, createClassDB, removeStudentFromClassDB, getAttendanceListDB } from '../models/class.model';
 import { getMyCoursesAction } from '@/modules/courses/controller/course.action'; // Dùng lại action này để lấy list course cho Dropdown
 
 // Hàm giải mã Token (nhớ import hoặc đưa ra file utils dùng chung)
@@ -126,6 +126,64 @@ export async function getClassMaterialsAction(classId: number) {
     return { success: true, data: mergedDocs };
   } catch (error) {
     console.error(error);
+    return { success: false, data: [] };
+  }
+}
+
+import { saveBulkAttendanceDB, getAttendanceHistoryDB } from '../models/class.model';
+
+export async function getClassAttendanceAction(classId: number) {
+  try {
+    const data = await getAttendanceListDB(classId);
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    return { success: false, data: [] };
+  }
+}
+
+// Action: Xử lý nút Submit Lưu điểm danh
+export async function saveBulkAttendanceAction(classId: number, records: { student_id: number, status: string }[]) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session')?.value;
+  const user = token ? getUserFromToken(token) : null;
+  if (!user || user.role !== 'teacher') return { success: false, message: 'Không có quyền' };
+
+  try {
+    await saveBulkAttendanceDB(classId, user.id, records);
+    return { success: true, message: '✅ Đã lưu điểm danh thành công!' };
+  } catch (error: any) {
+    console.error(error);
+    return { success: false, message: 'Lỗi hệ thống khi lưu điểm danh' };
+  }
+}
+
+// Action: Lấy lịch sử điểm danh và nhóm theo ngày
+export async function getAttendanceHistoryAction(classId: number) {
+  try {
+    const rawData = await getAttendanceHistoryDB(classId);
+
+    // Thuật toán Gom nhóm dữ liệu theo ngày (session_date)
+    const groupedData: Record<string, any[]> = {};
+    
+    rawData.forEach(row => {
+      // Chuyển đổi định dạng ngày thành chuỗi DD/MM/YYYY
+      const dateStr = new Date(row.session_date).toLocaleDateString('vi-VN');
+      
+      if (!groupedData[dateStr]) {
+        groupedData[dateStr] = [];
+      }
+      groupedData[dateStr].push(row);
+    });
+
+    // Chuyển Object thành mảng Array để UI dễ render
+    const formattedData = Object.keys(groupedData).map(date => ({
+      date,
+      records: groupedData[date]
+    }));
+
+    return { success: true, data: formattedData };
+  } catch (error) {
     return { success: false, data: [] };
   }
 }

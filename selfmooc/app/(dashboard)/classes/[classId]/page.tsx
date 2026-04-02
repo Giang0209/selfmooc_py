@@ -2,19 +2,20 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClassStudentsAction, addStudentToClassAction, removeStudentAction } from '@/modules/classes/controller/class.action';
+import { getClassStudentsAction, addStudentToClassAction, removeStudentAction, getClassAttendanceAction } from '@/modules/classes/controller/class.action';
 import { getClassMaterialsAction } from '@/modules/classes/controller/class.action';
 import ClassAnnouncementPage from './ClassAnnouncementPage'; 
 
 import { getCourseQuestionsAction } from '@/modules/courses/controller/question.action';
 import { createAssignmentAction, getClassAssignmentsAction, getCourseIdOfClassAction } from '@/modules/assignments/controller/assignment.action';
+import { saveBulkAttendanceAction, getAttendanceHistoryAction } from '@/modules/classes/controller/class.action';
 
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
   const classId = parseInt(resolvedParams.classId);
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'announcements' | 'students' | 'quizzes' | 'materials'>('students');
+  const [activeTab, setActiveTab] = useState<'announcements' | 'students' | 'quizzes' | 'materials' | 'attendance'>('students');
   
   // States cho Tab Bài tập & Quiz
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -33,6 +34,25 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [materials, setMaterials] = useState<any[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
   
+  // --- STATE CHO ĐIỂM DANH ---
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]); // State mới cho Lịch sử
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
+
+  const loadAttendanceData = async () => {
+    setIsLoadingAttendance(true);
+    // Gọi song song cả danh sách điểm danh hôm nay VÀ lịch sử cũ
+    const [todayRes, historyRes] = await Promise.all([
+      getClassAttendanceAction(classId),
+      getAttendanceHistoryAction(classId)
+    ]);
+    if (todayRes.success) setAttendanceList(todayRes.data);
+    if (historyRes.success) setAttendanceHistory(historyRes.data);
+    setIsLoadingAttendance(false);
+  };
+
   const loadStudents = async () => {
     setIsLoading(true);
     const res = await getClassStudentsAction(classId);
@@ -47,10 +67,10 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setIsLoadingMaterials(false);
   };
 
-  // Cập nhật lại useEffect để tự động tải khi bấm sang Tab 4
   useEffect(() => {
     if (activeTab === 'students') loadStudents();
     if (activeTab === 'materials') loadMaterials();
+    if (activeTab === 'attendance') loadAttendanceData();
   }, [activeTab, classId]);
 
   // Xử lý thêm học sinh
@@ -132,7 +152,39 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setIsSubmittingQuiz(false);
   };
 
-  
+  // HÀM 1: Click trên giao diện chỉ đổi State ảo (Chưa lưu DB)
+  const handleToggleLocalAttendance = (studentId: number, currentStatus: string) => {
+    setAttendanceList(prev => prev.map(item => 
+      item.student_id === studentId 
+        ? { 
+            ...item, 
+            today_status: currentStatus === 'present' ? 'absent' : 'present',
+            // Nhảy số hiển thị cho trực quan
+            total_absences: currentStatus === 'present' ? Number(item.total_absences) + 1 : Number(item.total_absences) - 1 
+          } 
+        : item
+    ));
+  };
+
+  // HÀM 2: Bấm nút Submit mới lưu toàn bộ
+  const handleSaveAttendanceSubmit = async () => {
+    setIsSavingAttendance(true);
+    // Lọc ra mảng chỉ chứa ID và Status để gửi lên Server
+    const recordsToSave = attendanceList.map(item => ({
+      student_id: item.student_id,
+      status: item.today_status
+    }));
+
+    const res = await saveBulkAttendanceAction(classId, recordsToSave);
+    if (res.success) {
+      alert(res.message);
+      loadAttendanceData(); // Load lại để cập nhật Lịch sử
+    } else {
+      alert(res.message);
+    }
+    setIsSavingAttendance(false);
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-10">
       {/* HEADER LỚP HỌC */}
@@ -156,6 +208,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         <button onClick={() => setActiveTab('students')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'students' ? 'bg-purple-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>👥 Danh sách Học sinh</button>
         <button onClick={() => setActiveTab('quizzes')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'quizzes' ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>📝 Bài tập & Quiz</button>
         <button onClick={() => setActiveTab('materials')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'materials' ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>📚 Kho Học liệu</button>
+        <button onClick={() => setActiveTab('attendance')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'attendance' ? 'bg-rose-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>✅ Điểm danh</button>
       </div>
 
       {/* ========================================== */}
@@ -399,6 +452,158 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         </div>
       )}
 
+      {/* TAB 5: ĐIỂM DANH */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-8 animate-fade-in">
+          
+          {/* KHỐI 1: BẢNG ĐIỂM DANH HÔM NAY */}
+          <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-slate-700 bg-slate-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2"><span>📅</span> Chốt Điểm Danh Hôm Nay</h2>
+                <p className="text-sm text-slate-400 mt-1">Ngày: {new Date().toLocaleDateString('vi-VN')} • Tích vào những bạn đi học</p>
+              </div>
+              
+              <div className="flex items-center gap-6">
+                <div className="flex gap-4 text-sm font-bold">
+                  <span className="flex items-center gap-2 text-sky-400"><div className="w-4 h-4 rounded bg-sky-500/20 border border-sky-500 flex items-center justify-center text-xs">✓</div> Có mặt</span>
+                  <span className="flex items-center gap-2 text-rose-400"><div className="w-4 h-4 rounded bg-rose-500/20 border border-rose-500"></div> Vắng mặt</span>
+                </div>
+                
+                {/* 🚀 NÚT SUBMIT */}
+                <button 
+                  onClick={handleSaveAttendanceSubmit}
+                  disabled={isSavingAttendance || attendanceList.length === 0}
+                  className="px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSavingAttendance ? '⏳ ĐANG LƯU...' : '💾 LƯU ĐIỂM DANH'}
+                </button>
+              </div>
+            </div>
+
+            {isLoadingAttendance ? (
+              <div className="text-center py-20 text-slate-400 font-bold animate-pulse">Đang chuẩn bị danh sách...</div>
+            ) : attendanceList.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 font-bold">Lớp chưa có học sinh để điểm danh.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/50 text-slate-400 text-sm border-b border-slate-700">
+                      <th className="p-4 font-bold text-center w-16">STT</th>
+                      <th className="p-4 font-bold">Họ và tên</th>
+                      <th className="p-4 font-bold">MSSV</th>
+                      <th className="p-4 font-bold text-center">Trạng thái (Click đổi)</th>
+                      <th className="p-4 font-bold text-center">Số lần vắng</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {attendanceList.map((student, idx) => (
+                      <tr key={student.student_id} className="hover:bg-slate-700/20 transition-colors">
+                        <td className="p-4 text-center text-slate-500 font-medium">{idx + 1}</td>
+                        <td className="p-4 font-bold text-slate-200">{student.name}</td>
+                        <td className="p-4 font-mono text-sm text-purple-400">{student.student_code}</td>
+                        
+                        <td className="p-4 text-center">
+                          <button 
+                            onClick={() => handleToggleLocalAttendance(student.student_id, student.today_status)}
+                            className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center mx-auto transition-all transform active:scale-90 ${
+                              student.today_status === 'present' 
+                                ? 'bg-sky-500/20 border-sky-500 text-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.3)]' 
+                                : 'bg-slate-800 border-slate-600 hover:border-rose-500 hover:bg-rose-500/10'
+                            }`}
+                          >
+                            {student.today_status === 'present' && '✓'}
+                          </button>
+                        </td>
+
+                        <td className="p-4 text-center font-bold">
+                          <span className={`inline-block min-w-[2rem] px-2 py-1 rounded text-xs ${
+                            Number(student.total_absences) > 0 ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'text-slate-500'
+                          }`}>
+                            {student.total_absences}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-slate-700 bg-slate-800/50">
+               <h2 className="text-xl font-bold text-white flex items-center gap-2"><span>📜</span> Lịch Sử Điểm Danh Theo Ngày</h2>
+            </div>
+            
+            {attendanceHistory.length === 0 ? (
+              <div className="text-center py-10 text-slate-500 font-bold">Chưa có bản ghi lịch sử nào.</div>
+            ) : (
+              <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto scrollbar-hide">
+                {attendanceHistory.map((group) => (
+                  <div key={group.date} className="border border-slate-700 rounded-2xl overflow-hidden bg-slate-900/30">
+                    
+                    {/* THẺ HEADER CỦA TỪNG NGÀY (Bấm để mở/đóng) */}
+                    <button
+                      onClick={() => setExpandedDate(expandedDate === group.date ? null : group.date)}
+                      className="w-full p-5 hover:bg-slate-700/50 flex justify-between items-center transition-colors outline-none"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-2xl">📅</span>
+                        <span className="text-lg font-bold text-sky-400">{group.date}</span>
+                        <span className="text-xs px-3 py-1 bg-slate-800 text-slate-400 font-bold rounded-full border border-slate-600">
+                          {group.records.length} học sinh
+                        </span>
+                      </div>
+                      <span className={`text-slate-400 font-bold transition-transform duration-300 ${expandedDate === group.date ? 'rotate-180' : ''}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {/* BẢNG CHI TIẾT CỦA NGÀY (Chỉ hiện khi thẻ được bấm mở) */}
+                    {expandedDate === group.date && (
+                      <div className="bg-slate-900 border-t border-slate-700 animate-fade-in-down p-4">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-700/50">
+                              <th className="pb-3 font-bold w-16 text-center">STT</th>
+                              <th className="pb-3 font-bold">Học sinh</th>
+                              <th className="pb-3 font-bold">MSSV</th>
+                              <th className="pb-3 font-bold text-center">Tình trạng</th>
+                              <th className="pb-3 font-bold text-right">Giờ chốt sổ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800">
+                            {group.records.map((hist: any, i: number) => (
+                              <tr key={hist.attendance_id} className="hover:bg-slate-800/50 transition-colors">
+                                <td className="py-3 text-center text-slate-600 font-medium">{i + 1}</td>
+                                <td className="py-3 font-bold text-slate-300">{hist.name}</td>
+                                <td className="py-3 text-sm font-mono text-purple-400">{hist.student_code}</td>
+                                <td className="py-3 text-center">
+                                  {hist.status === 'present' 
+                                    ? <span className="px-3 py-1 text-xs font-bold bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">Có mặt</span>
+                                    : <span className="px-3 py-1 text-xs font-bold bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20">Vắng mặt</span>
+                                  }
+                                </td>
+                                <td className="py-3 text-right text-xs font-mono text-slate-500">
+                                  {new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(hist.recorded_at))}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }

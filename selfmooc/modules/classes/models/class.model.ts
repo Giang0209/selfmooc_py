@@ -120,3 +120,81 @@ export async function getClassAndCourseDocumentsDB(classId: number) {
     client.release();
   }
 }
+
+export async function getAttendanceListDB(classId: number) {
+  const client = await pgPool.connect();
+  try {
+    const query = `
+      SELECT 
+        s.student_id, 
+        s.name, 
+        s.student_code,
+        -- Lấy trạng thái hôm nay, nếu chưa điểm danh thì mặc định là 'present'
+        COALESCE(a_today.status, 'present') as today_status,
+        -- Đếm tổng số lần vắng mặt của học sinh này trong lớp
+        (SELECT COUNT(*) FROM attendance a_past WHERE a_past.student_id = s.student_id AND a_past.class_id = $1 AND a_past.status = 'absent') as total_absences
+      FROM enrollment e
+      JOIN student s ON e.student_id = s.student_id
+      LEFT JOIN attendance a_today 
+        ON e.student_id = a_today.student_id 
+        AND a_today.class_id = $1 
+        AND a_today.session_date = CURRENT_DATE
+      WHERE e.class_id = $1 AND e.status = 'active'
+      ORDER BY s.name ASC;
+    `;
+    const result = await client.query(query, [classId]);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
+
+// Lưu điểm danh HÀNG LOẠT (Dùng Transaction để đảm bảo lưu thành công tất cả)
+export async function saveBulkAttendanceDB(classId: number, teacherId: number, records: { student_id: number, status: string }[]) {
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN'); // Bắt đầu phiên giao dịch
+    
+    const query = `
+      INSERT INTO attendance (class_id, student_id, session_date, status, recorded_by, recorded_at)
+      VALUES ($1, $2, CURRENT_DATE, $3, $4, NOW())
+      ON CONFLICT (class_id, student_id, session_date) 
+      DO UPDATE SET 
+        status = EXCLUDED.status, 
+        recorded_by = EXCLUDED.recorded_by, 
+        recorded_at = NOW(); -- Cập nhật lại đúng mốc thời gian (giờ:phút) khi bấm Lưu
+    `;
+    
+    // Duyệt qua mảng và lưu từng học sinh
+    for (const record of records) {
+      await client.query(query, [classId, record.student_id, record.status, teacherId]);
+    }
+    
+    await client.query('COMMIT'); // Chốt sổ
+    return true;
+  } catch (error) {
+    await client.query('ROLLBACK'); // Lỗi thì hoàn tác
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Lấy Lịch sử điểm danh (Hiển thị mốc thời gian chi tiết)
+// 2. Lấy Lịch sử điểm danh
+export async function getAttendanceHistoryDB(classId: number) {
+  const client = await pgPool.connect();
+  try {
+    const query = `
+      SELECT a.attendance_id, s.name, s.student_code, a.session_date, a.status, a.recorded_at
+      FROM attendance a
+      JOIN student s ON a.student_id = s.student_id
+      WHERE a.class_id = $1
+      ORDER BY a.session_date DESC, s.name ASC
+    `;
+    const result = await client.query(query, [classId]);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
