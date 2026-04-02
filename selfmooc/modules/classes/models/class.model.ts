@@ -96,3 +96,27 @@ export async function removeStudentFromClassDB(classId: number, studentId: numbe
     client.release();
   }
 }
+
+// Lấy tài liệu của Lớp học VÀ tài liệu kế thừa từ Khóa học gốc
+export async function getClassAndCourseDocumentsDB(classId: number) {
+  const client = await pgPool.connect();
+  try {
+    // 1. Tìm xem lớp này thuộc Khóa học nào
+    const courseRes = await client.query('SELECT course_id FROM class WHERE class_id = $1', [classId]);
+    const courseId = courseRes.rows[0]?.course_id;
+
+    // 2. Lấy tài liệu: Hoặc của Khóa học, hoặc tải riêng cho Lớp này
+    let query = `
+      SELECT document_id, title, description, doc_type, file_ext, course_id, class_id, created_at
+      FROM document
+      WHERE class_id = $1 ${courseId ? 'OR course_id = $2' : ''}
+      ORDER BY created_at DESC
+    `;
+    const params = courseId ? [classId, courseId] : [classId];
+    
+    const result = await client.query(query, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}

@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getClassStudentsAction, addStudentToClassAction, removeStudentAction } from '@/modules/classes/controller/class.action';
+import { getClassMaterialsAction } from '@/modules/classes/controller/class.action';
 import ClassAnnouncementPage from './ClassAnnouncementPage'; 
 
 import { getCourseQuestionsAction } from '@/modules/courses/controller/question.action';
@@ -29,6 +30,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState('');
 
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
+  
   const loadStudents = async () => {
     setIsLoading(true);
     const res = await getClassStudentsAction(classId);
@@ -36,8 +40,17 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setIsLoading(false);
   };
 
+  const loadMaterials = async () => {
+    setIsLoadingMaterials(true);
+    const res = await getClassMaterialsAction(classId);
+    if (res.success) setMaterials(res.data);
+    setIsLoadingMaterials(false);
+  };
+
+  // Cập nhật lại useEffect để tự động tải khi bấm sang Tab 4
   useEffect(() => {
     if (activeTab === 'students') loadStudents();
+    if (activeTab === 'materials') loadMaterials();
   }, [activeTab, classId]);
 
   // Xử lý thêm học sinh
@@ -56,12 +69,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setIsAdding(false);
   };
 
-  // 🎯 Xử lý xóa học sinh (MỚI THÊM)
+  // 🎯 Xử lý xóa học sinh 
   const handleRemoveStudent = async (studentId: number, studentName: string) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa học sinh ${studentName} khỏi lớp không?`)) {
       const res = await removeStudentAction(classId, studentId);
       if (res.success) {
-        setStudents(prev => prev.filter(s => s.student_id !== studentId)); // Xóa ngay trên UI
+        setStudents(prev => prev.filter(s => s.student_id !== studentId)); // Xóa trên UI
       } else {
         alert(res.message);
       }
@@ -285,9 +298,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <label className="block text-sm font-bold text-slate-300 mb-2">Lời dặn dò</label>
                     <textarea name="description" rows={3} placeholder="Chú ý làm bài cẩn thận nhé..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none resize-none"></textarea>
                   </div>
-                  
-                  {message && <div className="p-3 bg-slate-900 rounded-xl text-sm font-bold text-center text-amber-400">{message}</div>}
-                  
+                                    
                   <button type="submit" disabled={isSubmittingQuiz} className="w-full py-4 mt-2 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50">
                     {isSubmittingQuiz ? '⏳ ĐANG LƯU...' : `🚀 GIAO BÀI (${selectedQIds.length} Câu hỏi)`}
                   </button>
@@ -336,20 +347,55 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         </div>
       )}
 
-      {/* TAB 4: KHO HỌC LIỆU (Giao diện chờ API) */}
+      {/* TAB 4: KHO HỌC LIỆU */}
       {activeTab === 'materials' && (
         <div className="animate-fade-in">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2"><span>📚</span> Học Liệu Tham Khảo</h2>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2"><span>📚</span> Kho Học Liệu</h2>
             <button className="px-6 py-3 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-all shadow-[0_4px_0_rgb(5,150,105)] active:translate-y-[2px] active:shadow-none">
-              ➕ Lấy tài liệu từ Khóa học
+              ➕ Tải thêm tài liệu Lớp
             </button>
           </div>
-          <div className="bg-slate-800 rounded-3xl p-12 text-center border border-slate-700 border-dashed">
-            <span className="text-6xl mb-4 block">📂</span>
-            <h3 className="text-xl font-bold text-slate-300 mb-2">Chưa có tài liệu nào</h3>
-            <p className="text-slate-500">Kéo thả các tài liệu (PDF, Video...) từ Khóa học sang đây để học sinh dễ dàng theo dõi.</p>
-          </div>
+
+          {isLoadingMaterials ? (
+            <div className="text-center py-20 text-slate-400 animate-pulse font-bold">Đang tải kho học liệu...</div>
+          ) : materials.length === 0 ? (
+            <div className="bg-slate-800 rounded-3xl p-12 text-center border border-slate-700 border-dashed">
+              <span className="text-6xl mb-4 block">📂</span>
+              <h3 className="text-xl font-bold text-slate-300 mb-2">Chưa có tài liệu nào</h3>
+              <p className="text-slate-500">Khóa học gốc chưa có tài liệu. Hãy sang mục Quản lý Khóa học để thêm nhé.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {materials.map((doc) => (
+                <div key={doc.document_id} className="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex items-center justify-between hover:border-emerald-500/50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center text-xl font-bold uppercase border border-emerald-500/30">
+                      {doc.doc_type === 'video' ? '🎥' : (doc.file_ext || '📄')}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-lg line-clamp-1">{doc.title}</h4>
+                      <div className="flex gap-2 mt-1">
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded font-bold ${doc.course_id ? 'text-sky-400 bg-sky-500/10' : 'text-emerald-400 bg-emerald-500/10'}`}>
+                          {doc.course_id ? '🌐 Của Khóa Học' : '📌 Của Lớp Này'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Các nút Xem / Tải về hiện lên khi Hover */}
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {doc.storage_url && doc.storage_url !== '#' && (
+                      <>
+                        <a href={doc.storage_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-700 text-sky-400 rounded-full flex items-center justify-center hover:bg-sky-500 hover:text-white transition-all shadow-sm" title="Xem tài liệu">👁️</a>
+                        <a href={`${doc.storage_url}?download=1`} className="w-10 h-10 bg-slate-700 text-emerald-400 rounded-full flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm" title="Tải xuống máy">⬇️</a>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
