@@ -9,6 +9,7 @@ import ClassAnnouncementPage from './ClassAnnouncementPage';
 import { getCourseQuestionsAction } from '@/modules/courses/controller/question.action';
 import { createAssignmentAction, getClassAssignmentsAction, getCourseIdOfClassAction, updateAssignmentAction, getAssignmentSelectedQuestionsAction } from '@/modules/assignments/controller/assignment.action';
 import { saveBulkAttendanceAction, getAttendanceHistoryAction } from '@/modules/classes/controller/class.action';
+import { addStudentsToClassAction } from '@/modules/classes/controller/enrollment.action';
 
 
 export default function TeacherClassDetailPage ({ params }: { params: Promise<{ classId: string }> }) {
@@ -44,6 +45,10 @@ export default function TeacherClassDetailPage ({ params }: { params: Promise<{ 
 
   const [editingAssignment, setEditingAssignment] = useState<any>(null);
 
+
+  // State import xlsx
+  const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
+  
   const loadAttendanceData = async () => {
     setIsLoadingAttendance(true);
     // Gọi song song cả danh sách điểm danh hôm nay VÀ lịch sử cũ
@@ -256,23 +261,87 @@ export default function TeacherClassDetailPage ({ params }: { params: Promise<{ 
 
       {/* TAB 2: QUẢN LÝ HỌC SINH */}
       {activeTab === 'students' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
-          <div className="lg:col-span-1">
-            <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 sticky top-8 shadow-xl">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>➕</span> Thêm học sinh</h2>
-              <form onSubmit={handleAddStudent} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Mã học sinh (ID)</label>
-                  <input name="student_code" required placeholder="VD: HS10293..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:border-purple-500 text-white font-mono uppercase transition-colors" />
-                </div>
-                {message && <div className={`p-3 rounded-xl text-sm font-bold text-center ${message.includes('thành công') || message.includes('🎉') ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>{message}</div>}
-                <button type="submit" disabled={isAdding} className="w-full py-3 bg-purple-500 text-white font-bold rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50">
-                  {isAdding ? '⏳ ĐANG THÊM...' : 'THÊM VÀO LỚP'}
-                </button>
-              </form>
-            </div>
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+    <div className="lg:col-span-1 space-y-6">
+      
+      {/* KHỐI 1: NHẬP THỦ CÔNG (Giữ nguyên ý muốn của bạn) */}
+      <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 shadow-xl">
+        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><span>⌨️</span> Nhập mã thủ công</h2>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          setIsAdding(true);
+          const fd = new FormData(e.currentTarget);
+          const res = await addStudentsToClassAction(classId, 'manual', { student_code: fd.get('student_code') });
+          setMessage(res.message);
+          if (res.success) loadClassData();
+          setIsAdding(false);
+        }} className="space-y-4">
+          <input name="student_code" required placeholder="Nhập MSSV..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white font-mono uppercase focus:border-purple-500 outline-none" />
+          <button type="submit" disabled={isAdding} className="w-full py-3 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-all">THÊM NHANH</button>
+        </form>
+      </div>
+
+      {/* KHỐI 2: IMPORT EXCEL */}
+      <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 shadow-xl">
+        <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><span>📊</span> Import Excel</h2>
+        <p className="text-[10px] text-slate-500 mb-4 uppercase font-black">File cần có cột: MSSV, HoTen</p>
+        
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          setIsAdding(true);
+          const fd = new FormData(e.currentTarget);
+          const res = await addStudentsToClassAction(classId, 'excel', fd.get('file'));
+          setMessage(res.message);
+          
+          if (res.success) {
+            loadClassData();
+            setSelectedExcel(null); // 🎯 Reset file sau khi upload thành công
+            (e.target as HTMLFormElement).reset(); 
+          }
+          setIsAdding(false);
+        }} className="space-y-4">
+          
+          {/* Khu vực Upload có trạng thái File */}
+          <div className={`relative border-2 border-dashed rounded-2xl p-4 text-center transition-all bg-slate-900/30 ${selectedExcel ? 'border-emerald-500/50' : 'border-slate-700 hover:border-purple-500'}`}>
+            <input 
+              type="file" 
+              name="file" 
+              accept=".xlsx, .xls" 
+              required 
+              className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
+              onChange={(e) => {
+                // 🎯 Lưu file vào state để hiển thị
+                if (e.target.files && e.target.files.length > 0) {
+                  setSelectedExcel(e.target.files[0]);
+                } else {
+                  setSelectedExcel(null);
+                }
+              }}
+            />
+            
+            {/* Nếu CÓ file -> Hiện Icon Excel, Nếu CHƯA -> Hiện chữ mặc định */}
+            {selectedExcel ? (
+              <div className="flex flex-col items-center justify-center animate-fade-in">
+                <span className="text-4xl mb-2 drop-shadow-md">📗</span>
+                <p className="text-sm font-bold text-emerald-400 line-clamp-1 px-2">{selectedExcel.name}</p>
+                <p className="text-xs text-slate-500 mt-1">{(selectedExcel.size / 1024).toFixed(1)} KB</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-3xl mb-2">📁</span>
+                <p className="text-xs text-slate-400 font-bold">Chọn file .xlsx</p>
+              </div>
+            )}
           </div>
 
+          <button type="submit" disabled={isAdding || !selectedExcel} className="w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 shadow-[0_4px_0_rgb(126,34,206)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none">
+            TẢI LÊN DANH SÁCH
+          </button>
+        </form>
+      </div>
+    </div>
+
+          {/* CỘT PHẢI: HIỂN THỊ DANH SÁCH */}
           <div className="lg:col-span-2">
             {isLoading ? (
               <div className="text-center py-20 text-slate-400 animate-pulse font-bold">Đang tải danh sách lớp...</div>
@@ -284,21 +353,20 @@ export default function TeacherClassDetailPage ({ params }: { params: Promise<{ 
             ) : (
               <div className="space-y-4">
                 <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex justify-between">
-                  <span className="text-slate-400 font-bold text-sm">Sĩ số hiện tại: <span className="text-purple-400 text-lg">{students.length}</span></span>
+                  <span className="text-slate-400 font-bold text-sm">Sĩ số hiện tại: <span className="text-sky-400 text-lg">{students.length}</span></span>
                 </div>
                 {students.map((student) => (
-                  <div key={student.student_id} className="bg-slate-800 rounded-2xl p-4 border border-slate-700 flex items-center justify-between hover:border-purple-500/50 transition-colors group">
+                  <div key={student.student_id} className="bg-slate-800 rounded-2xl p-4 border border-slate-700 flex items-center justify-between hover:border-sky-500/50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-slate-700 rounded-full overflow-hidden flex items-center justify-center text-xl">
                         {student.avatar_url ? <img src={student.avatar_url} alt="avt" className="w-full h-full object-cover" /> : '🐶'}
                       </div>
                       <div>
                         <h3 className="font-bold text-white text-lg">{student.name}</h3>
-                        <p className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded mt-1 inline-block">{student.student_code}</p>
+                        <p className="text-xs font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded mt-1 inline-block">{student.student_code}</p>
                       </div>
                     </div>
-                    {/* 🎯 Nút Xóa đã được gắn hàm */}
-                    <button onClick={() => handleRemoveStudent(student.student_id, student.name)} className="w-10 h-10 rounded-full bg-slate-700 text-slate-400 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-colors" title="Xóa khỏi lớp">
+                    <button onClick={() => handleRemoveStudent(student.student_id, student.name)} className="w-10 h-10 rounded-full bg-slate-700 text-slate-400 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 transition-colors" title="Xóa khỏi lớp">
                       ✕
                     </button>
                   </div>
