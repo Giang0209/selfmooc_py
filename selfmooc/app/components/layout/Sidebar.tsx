@@ -9,7 +9,6 @@ const MENUS = {
   student: [
     { name: 'Bảng Của Tớ', icon: '🏠', path: '/' },
     { name: 'Lớp học', icon: '📚', path: '/classes' },
-    { name: 'Thử Thách', icon: '🏆', path: '/challenges' },
     { name: 'Nhật Ký', icon: '📝', path: '/diary' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
@@ -20,6 +19,7 @@ const MENUS = {
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
     // { name: 'Học Sinh', icon: '👥', path: '/students' },
     { name: 'Báo Cáo', icon: '📊', path: '/reports' },
+    { name: 'Nhắn tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   parent: [
@@ -27,7 +27,7 @@ const MENUS = {
     { name: 'Gia Đình', icon: '👨‍👩‍👧‍👦', path: '/family' },
     { name: 'Kết Quả', icon: '📈', path: '/progress' },
     { name: 'Lịch Học', icon: '📅', path: '/schedule' },
-    { name: 'Nhắn Tin', icon: '💬', path: '/messages' },
+    { name: 'Nhắn Tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
 };

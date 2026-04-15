@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 // 1. Import phông Nunito từ kho của Google
-import { Nunito } from "next/font/google"; 
-import "./globals.css";
+import { Nunito } from "next/font/google";
+
+// Declare CSS module for TypeScript
+import "./globals.css"; // Đảm bảo bạn đã tạo file này với Tailwind directives
 
 // 2. Cấu hình phông chữ (Bắt buộc phải có "vietnamese" để không bị lỗi dấu)
 const nunito = Nunito({

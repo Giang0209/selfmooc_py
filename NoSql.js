@@ -446,3 +446,41 @@ db.createCollection("class_announcement", {
 
 db.class_announcement.createIndex({ pg_class_id: 1, created_at: -1 });
 db.class_announcement.createIndex({ pg_class_id: 1, is_pinned: -1, created_at: -1 });
+
+// Tạo collection quản lý cuộc hội thoại
+db.createCollection("parent_teacher_conversations", {
+    validator: {
+        $jsonSchema: {
+            bsonType: "object",
+            required: ["pg_teacher_id", "pg_parent_id", "pg_student_id", "updated_at"],
+            properties: {
+                pg_teacher_id: { bsonType: "int" },
+                pg_parent_id:  { bsonType: "int" },
+                pg_student_id: { bsonType: "int" }, // Chat về sinh viên nào
+                last_message:  { bsonType: "string" },
+                updated_at:    { bsonType: "date" }
+            }
+        }
+    }
+});
+
+// Tạo collection lưu trữ tin nhắn
+db.createCollection("parent_teacher_messages", {
+    validator: {
+        $jsonSchema: {
+            bsonType: "object",
+            required: ["conversation_id", "sender_id", "sender_role", "content", "created_at"],
+            properties: {
+                conversation_id: { bsonType: "objectId" },
+                sender_id:       { bsonType: "int" },
+                sender_role:     { enum: ["teacher", "parent"] },
+                content:         { bsonType: "string" },
+                created_at:      { bsonType: "date" }
+            }
+        }
+    }
+});
+
+// Tạo Index để tìm kiếm nhanh
+db.parent_teacher_conversations.createIndex({ pg_teacher_id: 1, pg_parent_id: 1, pg_student_id: 1 });
+db.parent_teacher_messages.createIndex({ conversation_id: 1, created_at: 1 });
