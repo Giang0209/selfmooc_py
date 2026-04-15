@@ -48,3 +48,8 @@ export async function deleteCourseService(courseId: number, teacherId: number) {
   if (!success) throw new Error('Không thể xóa môn học này!');
   return success;
 }
+
+export async function getStudentCoursesService(studentId: number) {
+  // Gọi trực tiếp hàm từ Model đã có sẵn
+  return await getStudentCoursesDB(studentId);
+}

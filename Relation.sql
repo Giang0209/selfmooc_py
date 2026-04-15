@@ -263,7 +263,7 @@ CREATE TABLE submission (
     -- kết quả chấm điểm
     score          DECIMAL(6,2),
     max_score      DECIMAL(6,2),
-    grade          DECIMAL(4,2) CHECK (grade BETWEEN 0 AND 10),
+    grade          DECIMAL(4,2) CHECK (grade is NULL OR( grade BETWEEN 0 AND 10)),
     graded_by      INTEGER REFERENCES teacher(teacher_id) ON DELETE SET NULL,
     graded_at      TIMESTAMPTZ,
     feedback       TEXT,                       -- nhận xét tổng (chi tiết per-question ở Mongo)
@@ -303,7 +303,7 @@ CREATE TABLE attendance (
 -- =============================================================
 
 -- Auth lookups
-CREATE INDEX idx_student_email  ON student(email);
+CREATE INDEX idx_student_code ON student(student_code);
 CREATE INDEX idx_teacher_email  ON teacher(email);
 
 -- Class queries
@@ -333,7 +333,7 @@ CREATE INDEX idx_submission_status     ON submission(status);
 CREATE INDEX idx_attendance_class_date ON attendance(class_id, session_date);
 CREATE INDEX idx_attendance_student    ON attendance(student_id);
 
--- Full-text name search
+-- Full-text name search 
 CREATE INDEX idx_student_name_trgm ON student USING gin(name gin_trgm_ops);
 CREATE INDEX idx_teacher_name_trgm ON teacher USING gin(name gin_trgm_ops);
 

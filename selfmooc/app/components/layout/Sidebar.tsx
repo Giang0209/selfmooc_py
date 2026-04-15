@@ -18,7 +18,7 @@ const MENUS = {
     { name: 'Lớp Học', icon: '🏫', path: '/classes' },
     { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
-    { name: 'Học Sinh', icon: '👥', path: '/students' },
+    // { name: 'Học Sinh', icon: '👥', path: '/students' },
     { name: 'Báo Cáo', icon: '📊', path: '/reports' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],

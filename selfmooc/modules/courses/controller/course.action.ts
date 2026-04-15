@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getTeacherCoursesService, createCourseService, togglePublishService } from '../services/course.service';
 import { getParentChildrenCoursesService } from '../services/course.service';
-import { updateCourseService, deleteCourseService } from '../services/course.service';
+import { updateCourseService, deleteCourseService, getStudentCoursesService } from '../services/course.service';
 // Tiện ích giải mã Token quen thuộc
 function getUserFromToken(token: string) {
   try {
@@ -183,5 +183,24 @@ export async function deleteCourseAction(courseId: number) {
     return { success: true, message: '🗑️ Đã xóa môn học!' };
   } catch (error: any) {
     return { success: false, message: error.message };
+  }
+}
+
+export async function getMyLearningAction() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session')?.value;
+  if (!token) return { success: false, data: [] };
+
+  const user = getUserFromToken(token);
+  // Chỉ cho phép học sinh gọi hàm này
+  if (!user || user.role !== 'student') return { success: false, data: [] };
+
+  try {
+    // Hàm này đã được viết sẵn trong course.service.ts từ trước
+    const courses = await getStudentCoursesService(user.id);
+    return { success: true, data: courses };
+  } catch (error) {
+    console.error(error);
+    return { success: false, data: [] };
   }
 }
