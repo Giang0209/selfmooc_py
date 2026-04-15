@@ -12,12 +12,15 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.2",
+    "lightningcss": "1.22.1",
     "mongodb": "^7.1.1",
     "next": "16.1.6",
     "nodemailer": "^8.0.4",
     "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
@@ -35,5 +38,8 @@
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }
