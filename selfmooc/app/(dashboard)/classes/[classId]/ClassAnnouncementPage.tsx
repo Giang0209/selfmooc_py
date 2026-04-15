@@ -73,7 +73,7 @@ export default function ClassAnnouncementPage({ classId }: { classId: number }) 
     setEditingId(ann._id); // Lúc này ann._id đã là String xịn nhờ Bước 1
     
     if (formRef.current) {
-      formRef.current.title.value = ann.title;
+      formRef.current.title.valueOf = ann.title;
       formRef.current.body.value = ann.body;
       formRef.current.is_pinned.checked = ann.is_pinned;
     }
