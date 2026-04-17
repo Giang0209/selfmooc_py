@@ -100,26 +100,34 @@ export default function Header({ user }: { user?: any }) {
                   <span className="text-xs bg-sky-500/20 text-sky-400 px-3 py-1 rounded-lg font-bold">{unreadCount} mới</span>
                 </div>
                 
+                {/* Danh sách thông báo */}
                 <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                   {notifications.length === 0 ? (
-                    <div className="p-10 text-center text-slate-500 text-sm font-medium">Chưa có thông báo nào</div>
+                    <div className="p-10 text-center text-gray-400 font-bold">
+                      <span className="text-4xl block mb-2">📭</span>
+                      Chưa có thông báo nào
+                    </div>
                   ) : (
-                    <div className="divide-y divide-slate-700/50">
+                    <div className="divide-y-2 divide-gray-50">
                       {notifications.map(n => (
                         <div 
                           key={n._id} 
                           onClick={() => handleNotifClick(n)}
-                          className={`p-5 hover:bg-slate-700/50 cursor-pointer transition-colors ${!n.is_read ? 'bg-sky-500/10' : ''}`}
+                          // 🎯 Nền xanh nhạt nếu chưa đọc, nền trắng nếu đã đọc
+                          className={`p-5 hover:bg-gray-50 cursor-pointer transition-colors ${!n.is_read ? 'bg-sky-50/50' : 'bg-white'}`}
                         >
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className={`text-base pr-4 ${!n.is_read ? 'font-bold text-white' : 'font-medium text-slate-300'}`}>
+                            <h4 className={`text-base pr-4 ${!n.is_read ? 'font-bold text-gray-800' : 'font-bold text-gray-500'}`}>
                               {n.title}
                             </h4>
+                            {/* Chấm đỏ báo chưa đọc */}
                             {!n.is_read && (
-                              <div className="w-2.5 h-2.5 bg-rose-500 rounded-full mt-1.5 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></div>
+                              <div className="w-2.5 h-2.5 bg-rose-500 rounded-full mt-1.5 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
                             )}
                           </div>
-                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">{n.body}</p>
+                          <p className={`text-sm line-clamp-2 leading-relaxed ${!n.is_read ? 'text-gray-600 font-medium' : 'text-gray-400'}`}>
+                            {n.body}
+                          </p>
                         </div>
                       ))}
                     </div>
