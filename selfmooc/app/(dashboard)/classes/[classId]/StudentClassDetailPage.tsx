@@ -84,27 +84,37 @@ export default function StudentClassDetailPage({ classId }: { classId: number })
           : assignments.length === 0 ? <div className="bg-white rounded-3xl p-12 text-center border-4 border-dashed border-gray-200"><span className="text-5xl block mb-4">🎉</span><p className="font-bold text-gray-500">Tuyệt vời! Hiện tại không có bài tập nào.</p></div>
           : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {assignments.map((ass) => (
-                <div key={ass.assignment_id} className="bg-white rounded-3xl p-6 border-4 border-amber-50 shadow-sm hover:border-amber-200 transition-colors">
+              {assignments.map((ass) => {
+                // 🎯 Kiểm tra xem học sinh đã hết lượt làm bài chưa
+                const isExhausted = ass.max_attempts && Number(ass.student_attempts) >= ass.max_attempts;
+
+                return (
+                <div key={ass.assignment_id} className={`bg-white rounded-3xl p-6 border-4 shadow-sm transition-colors ${isExhausted ? 'border-gray-200 opacity-80' : 'border-amber-50 hover:border-amber-200'}`}>
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center text-2xl font-bold">📝</div>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold ${isExhausted ? 'bg-gray-100 text-gray-400' : 'bg-amber-100 text-amber-500'}`}>📝</div>
                     <div>
                       <h3 className="font-bold text-gray-800 text-xl">{ass.title}</h3>
-                      <p className="text-xs font-bold text-amber-500 uppercase">{ass.assignment_type}</p>
+                      <p className={`text-xs font-bold uppercase ${isExhausted ? 'text-gray-400' : 'text-amber-500'}`}>{ass.assignment_type}</p>
                     </div>
                   </div>
+                  
                   <div className="bg-gray-50 p-4 rounded-2xl text-sm font-bold text-gray-500 space-y-2 mb-6">
                     <p>⏳ Thời gian: {ass.time_limit_min ? <span className="text-blue-500">{ass.time_limit_min} phút</span> : 'Không giới hạn'}</p>
                     <p>📅 Hạn chót: {ass.due_date ? <span className="text-rose-500">{new Date(ass.due_date).toLocaleDateString('vi-VN')}</span> : 'Không có'}</p>
+                    {/* 🎯 Hiển thị số lượt làm */}
+                    <p>🔄 Lượt làm: <span className={isExhausted ? "text-rose-500" : "text-sky-500"}>{ass.student_attempts || 0} / {ass.max_attempts || 'Vô hạn'}</span></p>
                   </div>
+                  
+                  {/* 🎯 Thay đổi giao diện nút bấm nếu đã hết lượt */}
                   <button 
-                    onClick={() => router.push(`/assignments/${ass.assignment_id}`)}
-                    className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black rounded-xl hover:shadow-lg transition-all active:scale-95"
+                    onClick={() => !isExhausted && router.push(`/assignments/${ass.assignment_id}`)}
+                    disabled={isExhausted}
+                    className={`w-full py-3 font-black rounded-xl transition-all ${isExhausted ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white hover:shadow-lg active:scale-95'}`}
                   >
-                    LÀM BÀI NGAY
+                    {isExhausted ? 'ĐÃ HẾT LƯỢT LÀM BÀI' : 'LÀM BÀI NGAY'}
                   </button>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>

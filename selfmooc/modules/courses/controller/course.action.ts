@@ -6,7 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { getTeacherCoursesService, createCourseService, togglePublishService } from '../services/course.service';
 import { getParentChildrenCoursesService } from '../services/course.service';
 import { updateCourseService, deleteCourseService, getStudentCoursesService } from '../services/course.service';
-// Tiện ích giải mã Token quen thuộc
+// 🎯 ĐÃ IMPORT HÀM TỪ SERVICE VÀO
+import { getStudentClassGradesService } from '../services/course.service';
+
 function getUserFromToken(token: string) {
   try {
     const payload = token.split('.')[1];
@@ -16,14 +18,12 @@ function getUserFromToken(token: string) {
   }
 }
 
-// 1. LẤY DANH SÁCH KHÓA HỌC
 export async function getMyCoursesAction() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
   if (!token) return { success: false, data: [] };
 
   const user = getUserFromToken(token);
-  // Chỉ Giáo viên mới được lấy danh sách kiểu này
   if (!user || user.role !== 'teacher') return { success: false, data: [] };
 
   try {
@@ -34,7 +34,6 @@ export async function getMyCoursesAction() {
   }
 }
 
-// 2. TẠO KHÓA HỌC MỚI
 export async function createCourseAction(formData: FormData) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -43,7 +42,6 @@ export async function createCourseAction(formData: FormData) {
   const user = getUserFromToken(token);
   if (!user || user.role !== 'teacher') return { success: false, message: 'Chỉ giáo viên mới được tạo khóa học' };
 
-  // Validate bằng Zod
   const schema = z.object({
     name: z.string().min(5, 'Tên khóa học phải dài ít nhất 5 ký tự'),
     code: z.string().min(3, 'Mã khóa học phải từ 3 ký tự trở lên (VD: TOAN01)'),
@@ -61,14 +59,13 @@ export async function createCourseAction(formData: FormData) {
 
   try {
     await createCourseService(user.id, parsed.data);
-    revalidatePath('/courses'); // Làm mới lại trang hiển thị khóa học
+    revalidatePath('/courses'); 
     return { success: true, message: '🎉 Khai giảng khóa học mới thành công!' };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-// 3. BẬT/TẮT XUẤT BẢN
 export async function togglePublishAction(courseId: number, isPublished: boolean) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -86,7 +83,6 @@ export async function togglePublishAction(courseId: number, isPublished: boolean
   }
 }
 
-// 5. ACTION CHO PHỤ HUYNH XEM LỚP CỦA CON
 export async function getMyChildrenLearningAction() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -96,24 +92,19 @@ export async function getMyChildrenLearningAction() {
   if (!user || user.role !== 'parent') return { success: false, data: [] };
 
   try {
-    // Gọi DB lấy mảng phẳng (flat array) gồm tất cả các môn của tất cả các con
     const rawCourses = await getParentChildrenCoursesService(user.id);
-
-    // 🎯 THUẬT TOÁN GOM NHÓM DỮ LIỆU (Group by student_id)
     const groupedData: Record<number, any> = {};
 
     rawCourses.forEach((row) => {
-      // Nếu chưa có bé này trong danh sách thì tạo mới
       if (!groupedData[row.student_id]) {
         groupedData[row.student_id] = {
           student_id: row.student_id,
           student_name: row.student_name,
           student_avatar: row.student_avatar,
-          courses: [] // Mảng chứa các lớp học của riêng bé này
+          courses: [] 
         };
       }
       
-      // Nhét lớp học vào mảng của đúng bé đó
       if (row.class_id) {
         groupedData[row.student_id].courses.push({
           class_id: row.class_id,
@@ -128,16 +119,13 @@ export async function getMyChildrenLearningAction() {
       }
     });
 
-    // Biến Object thành Array để Frontend dễ map()
     const finalData = Object.values(groupedData);
-
     return { success: true, data: finalData };
   } catch (error) {
     return { success: false, data: [] };
   }
 }
 
-// 6. ACTION SỬA KHÓA HỌC
 export async function updateCourseAction(formData: FormData) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -168,7 +156,6 @@ export async function updateCourseAction(formData: FormData) {
   }
 }
 
-// 7. ACTION XÓA KHÓA HỌC
 export async function deleteCourseAction(courseId: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -192,13 +179,29 @@ export async function getMyLearningAction() {
   if (!token) return { success: false, data: [] };
 
   const user = getUserFromToken(token);
-  // Chỉ cho phép học sinh gọi hàm này
   if (!user || user.role !== 'student') return { success: false, data: [] };
 
   try {
-    // Hàm này đã được viết sẵn trong course.service.ts từ trước
     const courses = await getStudentCoursesService(user.id);
     return { success: true, data: courses };
+  } catch (error) {
+    console.error(error);
+    return { success: false, data: [] };
+  }
+}
+
+// 🎯 HÀM MỚI: ACTION ĐỂ FRONTEND GỌI LẤY ĐIỂM
+export async function getStudentClassGradesAction(studentId: number, classId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session')?.value;
+  const user = token ? getUserFromToken(token) : null;
+  
+  if (!user || user.role !== 'parent') return { success: false, data: [] };
+
+  try {
+    // Gọi sang Service
+    const grades = await getStudentClassGradesService(studentId, classId);
+    return { success: true, data: grades };
   } catch (error) {
     console.error(error);
     return { success: false, data: [] };

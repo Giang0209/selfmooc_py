@@ -31,11 +31,20 @@ export default function Header({ user }: { user?: any }) {
   };
 
   const handleNotifClick = async (notif: any) => {
+
     setSelectedNotif(notif);
+
+    // Nếu thông báo chưa đọc thì mới gọi API
+
     if (!notif.is_read) {
-      await markAsReadAction(notif._id); // Gọi API đánh dấu đã đọc
-      // Cập nhật lại UI ngay lập tức
-      setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, is_read: true } : n));
+      const res = await markAsReadAction(notif._id);
+
+      if (res.success) {
+        // Cập nhật UI ngay lập tức để học sinh thấy nó mờ đi
+        setNotifications(prev =>
+          prev.map(n => n._id === notif._id ? { ...n, is_read: true } : n)
+        );
+      }
     }
   };
 

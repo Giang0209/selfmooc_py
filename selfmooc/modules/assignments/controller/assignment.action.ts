@@ -1,30 +1,40 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { createAssignmentDB, getClassAssignmentsDB, getClassCourseIdDB } from '../models/assignment.model';
+import { createAssignmentDB, getClassCourseIdDB } from '../models/assignment.model';
 import { ObjectId } from 'mongodb';
 import { getMongoDb, pgPool } from '@/lib/db'; 
 
-// Đọc Token quen thuộc
 function getUserFromToken(token: string) {
   try {
     return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf-8'));
-  } catch (error) {
-    return null;
-  }
+  } catch (error) { return null; }
 }
 
-// Lấy danh sách bài tập ra UI
+// 🎯 Đã viết lại hàm này để Join đếm số lượt học sinh đã làm
 export async function getClassAssignmentsAction(classId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session')?.value;
+  const user = token ? getUserFromToken(token) : null;
+  if (!user) return { success: false, data: [] };
+
+  const client = await pgPool.connect();
   try {
-    const data = await getClassAssignmentsDB(classId);
-    return { success: true, data };
+    const res = await client.query(`
+      SELECT a.*,
+        (SELECT COUNT(*) FROM submission s WHERE s.assignment_id = a.assignment_id AND s.student_id = $1) as student_attempts
+      FROM assignment a
+      WHERE a.class_id = $2
+      ORDER BY a.created_at DESC
+    `, [user.id, classId]);
+    return { success: true, data: res.rows };
   } catch(e) { 
     return { success: false, data: [] }; 
+  } finally {
+    client.release();
   }
 }
 
-// Lấy ID Khóa học để load Ngân hàng câu hỏi
 export async function getCourseIdOfClassAction(classId: number) {
   try {
     const courseId = await getClassCourseIdDB(classId);
@@ -34,7 +44,6 @@ export async function getCourseIdOfClassAction(classId: number) {
   }
 }
 
-// Xử lý Form Tạo Bài Tập
 export async function createAssignmentAction(formData: FormData, selectedQuestionIds: number[]) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -47,7 +56,6 @@ export async function createAssignmentAction(formData: FormData, selectedQuestio
 
   try {
     const dueDateStr = formData.get('due_date') as string;
-    
     const payload = {
       class_id: Number(formData.get('class_id')),
       teacher_id: user.id,
@@ -72,15 +80,23 @@ export async function getAssignmentForStudentAction(assignmentId: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
   if (!token) return { success: false, message: 'Chưa đăng nhập' };
+  const user = getUserFromToken(token); // 🎯 Lấy user
 
   const client = await pgPool.connect();
   try {
-    // 1. Lấy thông tin chung của Bài tập (Thời gian, Tên bài...)
     const assRes = await client.query('SELECT * FROM assignment WHERE assignment_id = $1', [assignmentId]);
     if (assRes.rows.length === 0) return { success: false, message: 'Không tìm thấy bài tập' };
     const assignment = assRes.rows[0];
 
-    // 2. Lấy danh sách câu hỏi trong Postgres (Được nối qua bảng assignment_question)
+    // 🎯 CHẶN HỌC SINH NẾU ĐÃ HẾT LƯỢT LÀM BÀI
+    if (assignment.max_attempts) {
+      const subRes = await client.query('SELECT COUNT(*) FROM submission WHERE assignment_id = $1 AND student_id = $2', [assignmentId, user.id]);
+      const attempts = parseInt(subRes.rows[0].count);
+      if (attempts >= assignment.max_attempts) {
+        return { success: false, message: '⚠️ Bạn đã hết số lần làm bài cho phép!' };
+      }
+    }
+
     const qRes = await client.query(`
       SELECT q.question_id, q.question_type, q.mongo_id, aq.points, aq.display_order
       FROM assignment_question aq
@@ -92,27 +108,21 @@ export async function getAssignmentForStudentAction(assignmentId: number) {
     const pgQuestions = qRes.rows;
     if (pgQuestions.length === 0) return { success: true, data: { assignment, questions: [] } };
 
-    // 3. Lấy Nội dung câu hỏi từ MongoDB
     const mongoIds = pgQuestions.map(q => new ObjectId(q.mongo_id));
     const db = await getMongoDb();
     const mongoQuestions = await db.collection('question_content').find({ _id: { $in: mongoIds } }).toArray();
 
     const safeQuestions = pgQuestions.map(pgQ => {
       const content = mongoQuestions.find(m => m._id.toString() === pgQ.mongo_id);
-      
-      // Bỏ qua nếu dữ liệu câu hỏi bên Mongo bị mất/lỗi
       if (!content) return null; 
       
-      // 🎯 SỬA LỖI TYPESCRIPT: Ép kiểu thành 'any' để thoải mái xóa các key
       let safeContent: any = { ...content, _id: content._id.toString() };
-      
       delete safeContent.correct_answer;
       delete safeContent.sample_answer;
-      delete safeContent.explanation; // Xóa luôn cả lời giải thích (từ Schema)
-      delete safeContent.rubric;      // Xóa luôn rubric chấm điểm (nếu có)
+      delete safeContent.explanation;
+      delete safeContent.rubric;      
       
       if (safeContent.options && Array.isArray(safeContent.options)) {
-        // Biến mảng options thành mảng an toàn (xóa trường is_correct)
         safeContent.options = safeContent.options.map((opt: any) => ({
           label: opt.label,
           text: opt.text
@@ -125,9 +135,9 @@ export async function getAssignmentForStudentAction(assignmentId: number) {
         points: pgQ.points,
         content: safeContent
       };
-    }).filter(q => q !== null); // Lọc bỏ các câu bị null
+    }).filter(q => q !== null);
 
-    return { success: true, data: { assignment, questions: safeQuestions } };   
+    return { success: true, data: { assignment, questions: safeQuestions } };
   } catch (error) {
     console.error(error);
     return { success: false, message: 'Lỗi hệ thống khi tải đề thi' };
@@ -136,7 +146,6 @@ export async function getAssignmentForStudentAction(assignmentId: number) {
   }
 }
 
-// LẤY DANH SÁCH ID CÂU HỎI ĐÃ ĐƯỢC CHỌN CỦA 1 BÀI TẬP 
 export async function getAssignmentSelectedQuestionsAction(assignmentId: number) {
   const client = await pgPool.connect();
   try {
@@ -164,7 +173,6 @@ export async function updateAssignmentAction(assignmentId: number, formData: For
     const dueDateStr = formData.get('due_date') as string;
     const maxAttempts = formData.get('max_attempts') ? Number(formData.get('max_attempts')) : null;
 
-    // Cập nhật thông tin vỏ bài tập
     await client.query(`
       UPDATE assignment 
       SET title = $1, description = $2, assignment_type = $3, time_limit_min = $4, due_date = $5, max_attempts = $6
@@ -175,19 +183,14 @@ export async function updateAssignmentAction(assignmentId: number, formData: For
       maxAttempts, assignmentId, user.id
     ]);
 
-    // Xóa toàn bộ câu hỏi cũ của bài tập này
     await client.query('DELETE FROM assignment_question WHERE assignment_id = $1', [assignmentId]);
 
-    // Insert lại danh sách câu hỏi mới
     for (let i = 0; i < selectedQuestionIds.length; i++) {
       await client.query(`
         INSERT INTO assignment_question (assignment_id, question_id, points, display_order) 
         VALUES ($1, $2, $3, $4)
-      `, [assignmentId, selectedQuestionIds[i], 1, i + 1]); // Mặc định mỗi câu 1 điểm
+      `, [assignmentId, selectedQuestionIds[i], 1, i + 1]); 
     }
-
-    // Cập nhật lại tổng số câu hỏi
-    // await client.query('UPDATE assignment SET question_count = $1 WHERE assignment_id = $2', [selectedQuestionIds.length, assignmentId]);
 
     await client.query('COMMIT');
     return { success: true, message: '✅ Đã cập nhật bài tập thành công!' };

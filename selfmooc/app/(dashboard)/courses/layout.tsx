@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const user = getUserFromToken(token);
-  
+
   // Giải mã lỗi (token rởm) -> Bay ra trang Login
   if (!user) {
     redirect('/login');
@@ -33,23 +33,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen bg-sky-50 overflow-hidden">
-      
+
       {/* 1. SIDEBAR CỦA CHÚNG TA ĐÂY NÀY */}
       <Sidebar role={user.role} />
 
       {/* CỘT BÊN PHẢI - Header & Nội dung chính */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
+
         {/* 2. HEADER XỊN SÒ ĐÃ ĐƯỢC LẮP VÀO ĐÂY (Thay cho cục hardcode cũ) 🚀 */}
         <Header user={user} />
 
         {/* 3. KHU VỰC NỘI DUNG CHÍNH (Nơi trang Profile, Family... sẽ được nhúng vào) */}
         <main className="flex-1 overflow-y-auto p-8 relative">
-           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-           
-           <div className="relative z-10 h-full">
-              {children}
-           </div>
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+
+          <div className="relative z-10 h-full">
+            {children}
+          </div>
         </main>
 
       </div>

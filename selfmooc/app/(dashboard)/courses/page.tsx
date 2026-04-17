@@ -1,22 +1,22 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { 
-  getMyCoursesAction, 
-  createCourseAction, 
+import {
+  getMyCoursesAction,
+  createCourseAction,
   updateCourseAction,
   deleteCourseAction,
-  togglePublishAction 
+  togglePublishAction
 } from '@/modules/courses/controller/course.action';
 
 export default function TeacherCoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // State quản lý Modal dùng chung cho cả Tạo & Sửa
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any | null>(null); // Nếu null -> Đang Tạo mới. Nếu có data -> Đang Sửa
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -49,14 +49,14 @@ export default function TeacherCoursesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
-    
+
     const formData = new FormData(e.currentTarget);
-    
+
     // Nếu đang có editingCourse thì gọi hàm Sửa, ngược lại thì gọi hàm Tạo
-    const result = editingCourse 
+    const result = editingCourse
       ? await updateCourseAction(formData)
       : await createCourseAction(formData);
-    
+
     if (result.success) {
       setMessage(result.message);
       loadCourses();
@@ -87,7 +87,7 @@ export default function TeacherCoursesPage() {
     const res = await togglePublishAction(courseId, !currentStatus);
     if (!res.success) {
       alert(res.message);
-      loadCourses(); 
+      loadCourses();
     }
   };
 
@@ -100,7 +100,7 @@ export default function TeacherCoursesPage() {
           </h1>
           <p className="text-gray-500 mt-1 font-medium">Nơi bạn thiết kế các bộ khung chương trình chuẩn xác</p>
         </div>
-        
+
         <button onClick={openCreateModal} className="px-6 py-3 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 hover:-translate-y-1 transition-all shadow-[0_4px_0_rgb(37,99,235)] active:translate-y-[2px] active:shadow-none">
           ➕ Tạo Môn Mới
         </button>
@@ -117,9 +117,9 @@ export default function TeacherCoursesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
             <div key={course.course_id} className="bg-white rounded-3xl overflow-hidden shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 relative group" style={{ borderColor: course.theme_color || '#e5e7eb' }}>
-              
+
               {/* NÚT XÓA (Chỉ hiện khi di chuột vào thẻ) */}
-              <button 
+              <button
                 onClick={() => handleDelete(course.course_id, course.name)}
                 className="absolute top-3 left-3 w-8 h-8 bg-white/80 backdrop-blur-sm text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all z-10 shadow-sm"
                 title="Xóa môn học"
@@ -129,7 +129,7 @@ export default function TeacherCoursesPage() {
 
               <div className="h-32 flex items-center justify-center relative" style={{ backgroundColor: course.theme_color ? `${course.theme_color}20` : '#f3f4f6' }}>
                 <span className="text-6xl">{course.thumbnail_url || '📘'}</span>
-                
+
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
                   <span className="text-xs font-bold text-gray-600">{course.is_published ? 'Đang mở' : 'Đang ẩn'}</span>
                   <button onClick={() => handleTogglePublish(course.course_id, course.is_published)} className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ease-in-out ${course.is_published ? 'bg-green-500' : 'bg-gray-300'}`}>
@@ -142,13 +142,13 @@ export default function TeacherCoursesPage() {
                 <h3 className="text-xl font-bold text-gray-800 line-clamp-1 mb-2">{course.name}</h3>
                 <p className="text-xs font-mono font-bold text-blue-600 bg-blue-50 inline-block px-2 py-1 rounded-lg mb-3">MÃ: {course.code}</p>
                 <p className="text-gray-500 text-sm line-clamp-2 mb-4 h-10">{course.description || 'Chưa có mô tả.'}</p>
-                
+
                 <div className="flex gap-2">
                   <button onClick={() => openEditModal(course)} className="flex-1 py-2 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-gray-200 border-2 border-gray-100 transition-colors">
                     ✏️ Sửa
                   </button>
-                  <Link 
-                    href={`/courses/${course.course_id}`} 
+                  <Link
+                    href={`/courses/${course.course_id}`}
                     className="flex-1 flex items-center justify-center py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 border-2 border-blue-50 transition-colors"
                   >
                     📚 Chi tiết
@@ -168,7 +168,7 @@ export default function TeacherCoursesPage() {
               <h2 className="text-2xl font-bold">{editingCourse ? '✏️ Cập Nhật Môn Học' : '✨ Tạo Môn Mới'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white hover:rotate-90 transition-transform text-2xl">✖</button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* TRƯỜNG ẨN ĐỂ LƯU ID KHI SỬA */}
               {editingCourse && <input type="hidden" name="course_id" value={editingCourse.course_id} />}
@@ -177,7 +177,7 @@ export default function TeacherCoursesPage() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Tên Môn Học *</label>
                 <input name="name" defaultValue={editingCourse?.name} required placeholder="VD: Toán Tư Duy Lớp 3" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors" />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Mã Môn Học *</label>
                 <input name="code" defaultValue={editingCourse?.code} required placeholder="VD: TOAN03" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors font-mono uppercase" />
@@ -201,8 +201,8 @@ export default function TeacherCoursesPage() {
               </div>
 
               <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Icon đại diện (Emoji)</label>
-                 <input name="thumbnail_url" defaultValue={editingCourse?.thumbnail_url} placeholder="VD: 🐯, 🚀, 🍎" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors text-2xl" />
+                <label className="block text-sm font-bold text-gray-700 mb-1">Icon đại diện (Emoji)</label>
+                <input name="thumbnail_url" defaultValue={editingCourse?.thumbnail_url} placeholder="VD: 🐯, 🚀, 🍎" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors text-2xl" />
               </div>
 
               {message && (

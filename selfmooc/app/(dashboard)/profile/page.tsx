@@ -118,10 +118,25 @@ export default function ProfilePage() {
                   <label className="block text-sm font-bold text-gray-700 mb-2">🏷️ Họ và tên</label>
                   <input name="name" defaultValue={profile?.name} required className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all" />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">📧 Email</label>
-                  <input defaultValue={profile?.email} disabled className="w-full px-4 py-3 text-base border-2 border-gray-100 bg-gray-50 rounded-2xl text-gray-400 cursor-not-allowed" />
-                </div>
+                {profile?.role !== 'student' ? (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">📧 Email</label>
+                    <input
+                      defaultValue={profile?.email}
+                      disabled
+                      className="w-full px-4 py-3 text-base border-2 border-gray-100 bg-gray-50 rounded-2xl text-gray-400 cursor-not-allowed"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">🎓 MSSV</label>
+                    <input
+                      defaultValue={profile?.student_code || ''}
+                      disabled
+                      className="w-full px-4 py-3 text-base border-2 border-gray-100 bg-gray-50 rounded-2xl text-gray-600 font-bold cursor-not-allowed"
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">📞 Số điện thoại</label>

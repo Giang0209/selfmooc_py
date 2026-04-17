@@ -44,6 +44,12 @@ export default function GradingDetailPage({ params }: { params: Promise<{ submis
 
   return (
     <div className="max-w-4xl mx-auto pb-10 px-4">
+      <button 
+        onClick={() => router.push('/grading')}
+        className="mb-6 font-bold text-gray-500 hover:text-sky-500 flex items-center gap-2 transition-colors"
+      >
+        <span>⬅</span> Quay lại danh sách lớp
+      </button>
       {/* Header */}
       <div className="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-xl mb-8 flex justify-between items-center">
         <div>

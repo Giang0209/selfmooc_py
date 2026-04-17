@@ -10,14 +10,16 @@ import { getCourseQuestionsAction } from '@/modules/courses/controller/question.
 import { createAssignmentAction, getClassAssignmentsAction, getCourseIdOfClassAction, updateAssignmentAction, getAssignmentSelectedQuestionsAction } from '@/modules/assignments/controller/assignment.action';
 import { saveBulkAttendanceAction, getAttendanceHistoryAction } from '@/modules/classes/controller/class.action';
 import { addStudentsToClassAction } from '@/modules/classes/controller/enrollment.action';
-
+import { addClassScheduleAction, getClassScheduleAction, deleteClassScheduleAction } from '@/modules/classes/controller/schedule.action';
 
 export default function TeacherClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
   const classId = parseInt(resolvedParams.classId);
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'announcements' | 'students' | 'quizzes' | 'materials' | 'attendance'>('students');
+
+  const [activeTab, setActiveTab] = useState<'announcements' | 'students' | 'quizzes' | 'materials' | 'attendance' | 'schedule'>('students');
+
 
   // States cho Tab Bài tập & Quiz
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -49,6 +51,13 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
   // State import xlsx
   const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
 
+
+
+
+  // State cho Tab Lịch học
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
+
   const loadAttendanceData = async () => {
     setIsLoadingAttendance(true);
     // Gọi song song cả danh sách điểm danh hôm nay VÀ lịch sử cũ
@@ -79,6 +88,7 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
     if (activeTab === 'students') loadStudents();
     if (activeTab === 'materials') loadMaterials();
     if (activeTab === 'attendance') loadAttendanceData();
+
   }, [activeTab, classId]);
 
   // Xử lý thêm học sinh
@@ -226,6 +236,11 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
     setIsSavingAttendance(false);
   };
 
+  const loadSchedule = async () => {
+    const res = await getClassScheduleAction(classId);
+    if (res.success) setSchedules(res.data);
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-10">
 
@@ -246,6 +261,7 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
         <button onClick={() => setActiveTab('quizzes')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'quizzes' ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>📝 Bài tập & Quiz</button>
         <button onClick={() => setActiveTab('materials')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'materials' ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>📚 Kho Học liệu</button>
         <button onClick={() => setActiveTab('attendance')} className={`px-6 py-3 font-bold rounded-2xl transition-all whitespace-nowrap ${activeTab === 'attendance' ? 'bg-rose-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>✅ Điểm danh</button>
+        <button onClick={() => setActiveTab('schedule')} className={`px-6 py-3 font-bold rounded-2xl transition-all ${activeTab === 'schedule' ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-slate-800'}`}> 📅 Lịch học </button>
       </div>
 
       {/* ========================================== */}
@@ -635,8 +651,8 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
                           <button
                             onClick={() => handleToggleLocalAttendance(student.student_id, student.today_status)}
                             className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center mx-auto transition-all transform active:scale-90 ${student.today_status === 'present'
-                                ? 'bg-sky-500/20 border-sky-500 text-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.3)]'
-                                : 'bg-slate-800 border-slate-600 hover:border-rose-500 hover:bg-rose-500/10'
+                              ? 'bg-sky-500/20 border-sky-500 text-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.3)]'
+                              : 'bg-slate-800 border-slate-600 hover:border-rose-500 hover:bg-rose-500/10'
                               }`}
                           >
                             {student.today_status === 'present' && '✓'}
@@ -727,6 +743,110 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
             )}
           </div>
 
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+
+          {/* CỘT TRÁI: FORM XẾP LỊCH */}
+          <div className="lg:col-span-1">
+            <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 sticky top-8 shadow-xl">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>📅</span> Xếp lịch học</h2>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setIsSubmittingSchedule(true);
+                const fd = new FormData(e.currentTarget);
+                const res = await addClassScheduleAction(classId, fd);
+                if (res.success) {
+                  loadSchedule();
+                  (e.target as HTMLFormElement).reset();
+                } else {
+                  alert(res.message);
+                }
+                setIsSubmittingSchedule(false);
+              }} className="space-y-4">
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Thứ trong tuần</label>
+                  <select name="day_of_week" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500">
+                    <option value="1">Thứ 2</option>
+                    <option value="2">Thứ 3</option>
+                    <option value="3">Thứ 4</option>
+                    <option value="4">Thứ 5</option>
+                    <option value="5">Thứ 6</option>
+                    <option value="6">Thứ 7</option>
+                    <option value="7">Chủ Nhật</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">Giờ bắt đầu</label>
+                    <input type="time" name="start_time" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">Giờ kết thúc</label>
+                    <input type="time" name="end_time" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Phòng học (Tùy chọn)</label>
+                  <input type="text" name="room" placeholder="VD: Phòng 101, Lab 2..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                </div>
+
+                <button type="submit" disabled={isSubmittingSchedule} className="w-full py-4 mt-2 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-xl shadow-[0_4px_0_rgb(217,119,6)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
+                  {isSubmittingSchedule ? '⏳ ĐANG LƯU...' : '➕ THÊM VÀO LỊCH'}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* CỘT PHẢI: HIỂN THỊ CÁC BUỔI HỌC TRONG TUẦN */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-4">
+              <span className="text-slate-400 font-bold text-sm">Tổng số buổi học / tuần: <span className="text-amber-400 text-lg">{schedules.length}</span></span>
+            </div>
+
+            {schedules.length === 0 ? (
+              <div className="bg-slate-800 rounded-3xl p-12 text-center border border-slate-700 border-dashed">
+                <span className="text-5xl block mb-4">📭</span>
+                <p className="text-slate-400 font-bold">Lớp này chưa có thời khóa biểu.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {schedules.map((sch) => {
+                  const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+                  return (
+                    <div key={sch.schedule_id} className="bg-slate-800 rounded-3xl p-5 border border-slate-700 flex items-center justify-between hover:border-amber-500/50 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-2xl flex flex-col items-center justify-center font-black">
+                          <span className="text-xs opacity-80 uppercase tracking-widest">{days[sch.day_of_week - 1]?.split(' ')[0]}</span>
+                          <span className="text-xl">{days[sch.day_of_week - 1]?.split(' ')[1] || 'CN'}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-white text-lg">{sch.start_time.substring(0, 5)} - {sch.end_time.substring(0, 5)}</h3>
+                          <p className="text-xs font-bold text-slate-400 mt-1">📍 Phòng: {sch.room || 'Chưa xếp phòng'}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (confirm('Xóa lịch học này?')) {
+                            await deleteClassScheduleAction(sch.schedule_id);
+                            loadSchedule();
+                          }
+                        }}
+                        className="w-10 h-10 bg-slate-700 text-slate-400 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-500 transition-colors"
+                        title="Xóa buổi học"
+                      >✖</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

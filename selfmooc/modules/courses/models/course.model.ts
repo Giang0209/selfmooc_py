@@ -139,3 +139,20 @@ export async function deleteCourseDB(courseId: number, teacherId: number) {
     client.release();
   }
 }
+
+export async function getStudentClassGradesDB(studentId: number, classId: number) {
+  const client = await pgPool.connect();
+  try {
+    const query = `
+      SELECT a.title, a.assignment_type, s.grade, s.status, s.submitted_at
+      FROM assignment a
+      LEFT JOIN submission s ON a.assignment_id = s.assignment_id AND s.student_id = $1
+      WHERE a.class_id = $2
+      ORDER BY a.created_at DESC
+    `;
+    const result = await client.query(query, [studentId, classId]);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
