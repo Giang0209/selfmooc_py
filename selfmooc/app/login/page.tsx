@@ -142,26 +142,46 @@ export default function AuthPage() {
             {role === 'student' && mode === 'login' ? (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">🆔 Mã Học Sinh (ID)</label>
-                <input name="student_code" type="text" className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all placeholder-gray-400" placeholder="VD: HS2026..." />
+                <input 
+                  name="student_code" 
+                  type="text" 
+                  className="w-full px-4 py-3 text-base font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all placeholder-gray-400" 
+                  placeholder="VD: HS2026..." 
+                />
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">📧 Địa chỉ Email</label>
-                <input name="email" type="text" className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all placeholder-gray-400" placeholder="name@example.com" />
+                <input 
+                  name="email" 
+                  type="text" 
+                  className="w-full px-4 py-3 text-base font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all placeholder-gray-400" 
+                  placeholder="name@example.com" 
+                />
               </div>
             )}
 
             {/* Mật khẩu: Ai cũng phải nhập */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">🔑 Mật khẩu bí mật</label>
-              <input name="password_raw" type="password" className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all placeholder-gray-400" placeholder="••••••••" />
+              <input 
+                name="password_raw" 
+                type="password" 
+                className="w-full px-4 py-3 text-base font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all placeholder-gray-400 tracking-widest" 
+                placeholder="••••••••" 
+              />
             </div>
 
             {/* Nhập lại mật khẩu: CHỈ HIỆN KHI ĐĂNG KÝ */}
             {mode === 'register' && (
               <div className="animate-fade-in-down">
                 <label className="block text-sm font-bold text-gray-700 mb-2">✅ Nhập lại mật khẩu</label>
-                <input name="confirm_password_raw" type="password" className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all placeholder-gray-400" placeholder="Gõ lại y hệt bên trên nha..." />
+                <input 
+                  name="confirm_password_raw" 
+                  type="password" 
+                  className="w-full px-4 py-3 text-base font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all placeholder-gray-400 tracking-widest" 
+                  placeholder="Gõ lại y hệt bên trên nha..." 
+                />
               </div>
             )}
           </div>
