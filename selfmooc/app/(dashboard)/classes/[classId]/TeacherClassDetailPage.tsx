@@ -10,16 +10,14 @@ import { getCourseQuestionsAction } from '@/modules/courses/controller/question.
 import { createAssignmentAction, getClassAssignmentsAction, getCourseIdOfClassAction, updateAssignmentAction, getAssignmentSelectedQuestionsAction } from '@/modules/assignments/controller/assignment.action';
 import { saveBulkAttendanceAction, getAttendanceHistoryAction } from '@/modules/classes/controller/class.action';
 import { addStudentsToClassAction } from '@/modules/classes/controller/enrollment.action';
-import { addClassScheduleAction, getClassScheduleAction, deleteClassScheduleAction } from '@/modules/classes/controller/schedule.action';
+import { addClassScheduleAction, getClassScheduleAction, deleteClassScheduleAction, updateClassScheduleAction } from '@/modules/classes/controller/schedule.action';
 
 export default function TeacherClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
   const classId = parseInt(resolvedParams.classId);
   const router = useRouter();
 
-
   const [activeTab, setActiveTab] = useState<'announcements' | 'students' | 'quizzes' | 'materials' | 'attendance' | 'schedule'>('students');
-
 
   // States cho Tab Bài tập & Quiz
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -51,12 +49,12 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
   // State import xlsx
   const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
 
-
-
-
   // State cho Tab Lịch học
   const [schedules, setSchedules] = useState<any[]>([]);
+
   const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<any>(null);
+
 
   const loadAttendanceData = async () => {
     setIsLoadingAttendance(true);
@@ -88,7 +86,6 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
     if (activeTab === 'students') loadStudents();
     if (activeTab === 'materials') loadMaterials();
     if (activeTab === 'attendance') loadAttendanceData();
-
   }, [activeTab, classId]);
 
   // Xử lý thêm học sinh
@@ -131,7 +128,10 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
     setIsLoading(false);
   };
 
-  useEffect(() => { loadClassData(); }, [classId]);
+  useEffect(() => {
+    loadClassData();
+    loadSchedule();
+  }, [classId]);
 
   // 4. HÀM MỞ MODAL & LOAD NGÂN HÀNG CÂU HỎI
   const handleOpenQuizModal = async () => {
@@ -243,6 +243,8 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
 
   return (
     <div className="max-w-7xl mx-auto pb-10">
+      {/* HEADER LỚP HỌC */}
+
 
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl shadow-xl p-8 mb-8 border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-6">
@@ -752,15 +754,27 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
           {/* CỘT TRÁI: FORM XẾP LỊCH */}
           <div className="lg:col-span-1">
             <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 sticky top-8 shadow-xl">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>📅</span> Xếp lịch học</h2>
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-between">
+                <span className="flex items-center gap-2">📅 {editingSchedule ? 'Sửa lịch học' : 'Xếp lịch học'}</span>
+                {editingSchedule && (
+                  <button onClick={() => setEditingSchedule(null)} className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-slate-300">Hủy sửa</button>
+                )}
+              </h2>
 
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 setIsSubmittingSchedule(true);
                 const fd = new FormData(e.currentTarget);
-                const res = await addClassScheduleAction(classId, fd);
+                let res;
+                if (editingSchedule) {
+                  res = await updateClassScheduleAction(editingSchedule.schedule_id, fd);
+                } else {
+                  res = await addClassScheduleAction(classId, fd);
+                }
+
                 if (res.success) {
                   loadSchedule();
+                  setEditingSchedule(null); // Reset trạng thái
                   (e.target as HTMLFormElement).reset();
                 } else {
                   alert(res.message);
@@ -770,7 +784,7 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
 
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-2">Thứ trong tuần</label>
-                  <select name="day_of_week" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500">
+                  <select name="day_of_week" defaultValue={editingSchedule?.day_of_week || "1"} key={editingSchedule?.schedule_id || 'new_day'} required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500">
                     <option value="1">Thứ 2</option>
                     <option value="2">Thứ 3</option>
                     <option value="3">Thứ 4</option>
@@ -784,32 +798,33 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-300 mb-2">Giờ bắt đầu</label>
-                    <input type="time" name="start_time" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                    <input type="time" name="start_time" defaultValue={editingSchedule?.start_time} key={editingSchedule?.schedule_id || 'new_start'} required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-300 mb-2">Giờ kết thúc</label>
-                    <input type="time" name="end_time" required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                    <input type="time" name="end_time" defaultValue={editingSchedule?.end_time} key={editingSchedule?.schedule_id || 'new_end'} required className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-2">Phòng học (Tùy chọn)</label>
-                  <input type="text" name="room" placeholder="VD: Phòng 101, Lab 2..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
+                  <input type="text" name="room" defaultValue={editingSchedule?.room} key={editingSchedule?.schedule_id || 'new_room'} placeholder="VD: Phòng 101..." className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-amber-500" />
                 </div>
 
-                <button type="submit" disabled={isSubmittingSchedule} className="w-full py-4 mt-2 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-xl shadow-[0_4px_0_rgb(217,119,6)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
-                  {isSubmittingSchedule ? '⏳ ĐANG LƯU...' : '➕ THÊM VÀO LỊCH'}
+                <button type="submit" disabled={isSubmittingSchedule} className={`w-full py-4 mt-2 text-white font-black rounded-xl shadow-[0_4px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 ${editingSchedule ? 'bg-sky-500 hover:bg-sky-400 shadow-sky-600' : 'bg-amber-500 hover:bg-amber-400 shadow-amber-600'}`}>
+                  {isSubmittingSchedule ? '⏳ ĐANG LƯU...' : (editingSchedule ? '💾 LƯU THAY ĐỔI' : '➕ THÊM VÀO LỊCH')}
                 </button>
               </form>
             </div>
           </div>
 
-          {/* CỘT PHẢI: HIỂN THỊ CÁC BUỔI HỌC TRONG TUẦN */}
+
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-4">
-              <span className="text-slate-400 font-bold text-sm">Tổng số buổi học / tuần: <span className="text-amber-400 text-lg">{schedules.length}</span></span>
+              <span className="text-slate-400 font-bold text-sm">
+                Tổng số buổi học / tuần: <span className="text-amber-400 text-lg">{schedules.length}</span>
+              </span>
             </div>
-
             {schedules.length === 0 ? (
               <div className="bg-slate-800 rounded-3xl p-12 text-center border border-slate-700 border-dashed">
                 <span className="text-5xl block mb-4">📭</span>
@@ -819,6 +834,13 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {schedules.map((sch) => {
                   const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+
+                  // 🎯 FIX LỖI TIME FORMAT: Đảm bảo luôn lấy được dạng HH:mm bất chấp DB trả về kiểu gì
+                  const formatTimeSafely = (timeStr: any) => {
+                    if (!timeStr) return '--:--';
+                    if (typeof timeStr === 'string') return timeStr.substring(0, 5); // Cắt 08:00:00 thành 08:00
+                    return String(timeStr); // Fallback an toàn
+                  };
                   return (
                     <div key={sch.schedule_id} className="bg-slate-800 rounded-3xl p-5 border border-slate-700 flex items-center justify-between hover:border-amber-500/50 transition-all group">
                       <div className="flex items-center gap-4">
@@ -827,20 +849,37 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
                           <span className="text-xl">{days[sch.day_of_week - 1]?.split(' ')[1] || 'CN'}</span>
                         </div>
                         <div>
-                          <h3 className="font-bold text-white text-lg">{sch.start_time.substring(0, 5)} - {sch.end_time.substring(0, 5)}</h3>
+                          <h3 className="font-bold text-white text-lg">
+                            {formatTimeSafely(sch.start_time)} - {formatTimeSafely(sch.end_time)}
+                          </h3>
                           <p className="text-xs font-bold text-slate-400 mt-1">📍 Phòng: {sch.room || 'Chưa xếp phòng'}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Xóa lịch học này?')) {
-                            await deleteClassScheduleAction(sch.schedule_id);
-                            loadSchedule();
-                          }
-                        }}
-                        className="w-10 h-10 bg-slate-700 text-slate-400 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-500 transition-colors"
-                        title="Xóa buổi học"
-                      >✖</button>
+
+                      <div className="flex gap-2">
+                        {/* NÚT SỬA */}
+                        <button
+                          onClick={() => setEditingSchedule(sch)}
+                          className="w-10 h-10 bg-slate-700 text-sky-400 rounded-full flex items-center justify-center hover:bg-sky-500 hover:text-white transition-colors"
+                          title="Sửa"
+                        >
+                          ✏️
+                        </button>
+
+                        {/* NÚT XÓA */}
+                        <button
+                          onClick={async () => {
+                            if (confirm('Xóa lịch học này?')) {
+                              await deleteClassScheduleAction(sch.schedule_id);
+                              loadSchedule();
+                            }
+                          }}
+                          className="w-10 h-10 bg-slate-700 text-rose-400 rounded-full flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors"
+                          title="Xóa buổi học"
+                        >
+                          ✖
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

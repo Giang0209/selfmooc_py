@@ -88,3 +88,16 @@ export async function getParentWeeklyScheduleDB(parentId: number) {
     client.release();
   }
 }
+
+export async function updateClassScheduleDB(scheduleId: number, dayOfWeek: number, startTime: string, endTime: string, room: string) {
+  const client = await pgPool.connect();
+  try {
+    await client.query(`
+      UPDATE class_schedule 
+      SET day_of_week = $1, start_time = $2, end_time = $3, room = $4
+      WHERE schedule_id = $5
+    `, [dayOfWeek, startTime, endTime, room, scheduleId]);
+  } finally {
+    client.release();
+  }
+}

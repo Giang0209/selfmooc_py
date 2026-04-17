@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getMyClassesListAction, createNewClassAction } from '@/modules/classes/controller/class.action';
 import { getMyCoursesAction } from '@/modules/courses/controller/course.action';
+import ClassScheduleBadge from '@/app/components/ClassScheduleBadge';
 
 export default function TeacherClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
@@ -83,6 +84,7 @@ export default function TeacherClassesPage() {
               </div>
 
               <div className="p-6 pt-10">
+                {/* KHỐI 1: ICON VÀ TÊN LỚP */}
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{cls.thumbnail_url || '📘'}</span>
                   <div>
@@ -91,11 +93,16 @@ export default function TeacherClassesPage() {
                   </div>
                 </div>
                 
-                <div className="flex gap-2 mb-6">
-                  <div className="bg-sky-50 text-sky-600 px-3 py-1 rounded-lg text-xs font-bold border border-sky-100">
+                <div className="mb-4">
+                  <ClassScheduleBadge classId={cls.class_id} />
+                </div>
+
+                {/* KHỐI 3: ID VÀ SỐ HỌC SINH */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="bg-sky-50 text-sky-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-sky-100 flex items-center">
                     🆔 ID: {cls.class_id}
                   </div>
-                  <div className="bg-purple-50 text-purple-600 px-3 py-1 rounded-lg text-xs font-bold border border-purple-100">
+                  <div className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-purple-100 flex items-center">
                     👥 {cls.student_count}/{cls.max_students} Học sinh
                   </div>
                 </div>

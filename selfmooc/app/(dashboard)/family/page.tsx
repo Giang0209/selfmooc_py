@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { linkChildAction } from '@/modules/family/controller/family.action';
-// 🎯 Import thêm hàm lấy chi tiết điểm vừa tạo ở backend
 import { getMyChildrenLearningAction, getStudentClassGradesAction } from '@/modules/courses/controller/course.action';
+import ClassScheduleBadge from '@/app/components/ClassScheduleBadge';
 
 export default function FamilyPage() {
   const [childrenData, setChildrenData] = useState<any[]>([]);
@@ -79,7 +79,8 @@ export default function FamilyPage() {
           Gia Đình Của Tôi
         </h1>
       </div>
-
+      
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* CỘT TRÁI: FORM NHẬN CON */}
         <div className="lg:col-span-1">
@@ -156,6 +157,7 @@ export default function FamilyPage() {
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-800 text-lg leading-tight group-hover:text-blue-600 transition-colors">{course.course_name}</h3>
                     <p className="text-sm text-gray-500 font-medium mt-1">Lớp: {course.class_name}</p>
+                    <ClassScheduleBadge classId={course.class_id} />
                     <div className="mt-2 text-xs font-bold text-blue-500 bg-blue-500/10 w-fit px-2 py-1 rounded">Bấm để xem bảng điểm ➡️</div>
                   </div>
                 </div>

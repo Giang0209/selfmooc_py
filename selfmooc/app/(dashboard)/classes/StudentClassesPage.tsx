@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getMyLearningAction } from '@/modules/courses/controller/course.action'; 
+// 🎯 1. IMPORT COMPONENT LỊCH HỌC VÀO ĐÂY
+import ClassScheduleBadge from '@/app/components/ClassScheduleBadge'; 
 
 export default function StudentClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
@@ -45,14 +47,19 @@ export default function StudentClassesPage() {
                 {cls.academic_year}
               </div>
 
-              <div className="mb-8 mt-4">
+              <div className="mb-6 mt-4">
                 <div className="flex items-center gap-2 text-blue-500 font-black text-xs uppercase tracking-widest mb-3">
                   <span className="text-2xl">{cls.thumbnail_url || '📘'}</span>
                   {cls.course_name}
                 </div>
-                <h2 className="text-2xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors">
+                <h2 className="text-2xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors mb-4">
                   {cls.class_name}
                 </h2>
+                
+                {/* 🎯 2. NHÚNG LỊCH HỌC VÀO ĐÂY (Ngay dưới tên lớp) */}
+                <div className="w-fit">
+                  <ClassScheduleBadge classId={cls.class_id} />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3 mb-8">

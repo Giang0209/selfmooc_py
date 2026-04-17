@@ -5,7 +5,8 @@ import {
   addClassScheduleService,
   deleteClassScheduleService,
   getClassScheduleService,
-  getMyWeeklyScheduleService
+  getMyWeeklyScheduleService,
+  updateClassScheduleService
 } from '../services/schedule.service';
 
 function getUserFromToken(token: string) {
@@ -69,5 +70,23 @@ export async function getMyWeeklyScheduleAction() {
   } catch (error) {
     console.error(error);
     return { success: false, data: [] };
+  }
+}
+
+export async function updateClassScheduleAction(scheduleId: number, formData: FormData) {
+  const token = (await cookies()).get('session')?.value;
+  const user = token ? getUserFromToken(token) : null;
+  if (!user || user.role !== 'teacher') return { success: false, message: 'Không có quyền' };
+
+  const dayOfWeek = Number(formData.get('day_of_week'));
+  const startTime = formData.get('start_time') as string;
+  const endTime = formData.get('end_time') as string;
+  const room = formData.get('room') as string;
+
+  try {
+    await updateClassScheduleService(scheduleId, dayOfWeek, startTime, endTime, room);
+    return { success: true, message: '✅ Đã cập nhật lịch học thành công!' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
   }
 }

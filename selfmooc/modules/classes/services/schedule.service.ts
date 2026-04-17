@@ -4,7 +4,8 @@ import {
   getClassScheduleByClassIdDB,
   getTeacherWeeklyScheduleDB,
   getStudentWeeklyScheduleDB,
-  getParentWeeklyScheduleDB
+  getParentWeeklyScheduleDB, 
+  updateClassScheduleDB
 } from '../models/schedule.model';
 
 export async function addClassScheduleService(classId: number, dayOfWeek: number, startTime: string, endTime: string, room: string) {
@@ -43,4 +44,14 @@ export async function getMyWeeklyScheduleService(userId: number, role: string) {
     return await getParentWeeklyScheduleDB(userId);
   }
   return [];
+}
+
+export async function updateClassScheduleService(scheduleId: number, dayOfWeek: number, startTime: string, endTime: string, room: string) {
+  try {
+    await updateClassScheduleDB(scheduleId, dayOfWeek, startTime, endTime, room);
+    return true;
+  } catch (error: any) {
+    if (error.code === '23505') throw new Error('⚠️ Lịch này bị trùng giờ và ngày rồi!');
+    throw new Error('Lỗi hệ thống khi cập nhật lịch học.');
+  }
 }
