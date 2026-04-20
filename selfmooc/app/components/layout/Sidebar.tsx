@@ -20,6 +20,7 @@ const MENUS = {
     { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
     // { name: 'Học Sinh', icon: '👥', path: '/students' },
+    // { name: 'Báo Cáo', icon: '📊', path: '/reports' },
     { name: 'Nhắn tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
