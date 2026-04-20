@@ -61,7 +61,7 @@ export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teac
       <div className="flex flex-col items-center justify-center gap-1 mb-8 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-3xl animate-bounce">🚀</span>
-          <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">
+          <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-purple-500">
             SelfMOOC
           </h1>
         </div>
@@ -77,8 +77,8 @@ export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teac
           return (
             <Link key={item.path} href={item.path}>
               <div className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all transform hover:-translate-y-1 hover:shadow-md ${isActive
-                  ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]'
-                  : 'bg-gray-50 text-gray-600 hover:bg-blue-50'
+                ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]'
+                : 'bg-gray-50 text-gray-600 hover:bg-blue-50'
                 }`}>
                 <span className="text-2xl drop-shadow-sm">{item.icon}</span>
                 <span className="text-lg">{item.name}</span>
