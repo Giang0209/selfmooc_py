@@ -27,10 +27,10 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
     } else {
       res = await addClassScheduleAction(classId, fd);
     }
-    
+
     if (res.success) {
       loadSchedule();
-      setEditingSchedule(null); 
+      setEditingSchedule(null);
       (e.target as HTMLFormElement).reset();
     } else {
       alert(res.message);
@@ -49,7 +49,7 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
               <button onClick={() => setEditingSchedule(null)} className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-gray-600 font-bold transition-colors">Hủy sửa</button>
             )}
           </h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Thứ trong tuần</label>
@@ -59,8 +59,7 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
                 <option value="3">Thứ 4</option>
                 <option value="4">Thứ 5</option>
                 <option value="5">Thứ 6</option>
-                <option value="6">Thứ 7</option>
-                <option value="7">Chủ Nhật</option>
+
               </select>
             </div>
 
@@ -94,7 +93,7 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
             Tổng số buổi học / tuần: <span className="text-indigo-500 text-lg">{schedules.length}</span>
           </span>
         </div>
-        
+
         {schedules.length === 0 ? (
           <div className="bg-gray-50 rounded-3xl p-12 text-center border-2 border-gray-200 border-dashed">
             <span className="text-5xl block mb-4 grayscale opacity-50">📭</span>
@@ -109,7 +108,7 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
                 if (typeof timeStr === 'string') return timeStr.substring(0, 5);
                 return String(timeStr);
               };
-              
+
               return (
                 <div key={sch.schedule_id} className="bg-white rounded-3xl p-5 border-2 border-gray-100 flex items-center justify-between hover:border-indigo-300 shadow-sm transition-all group">
                   <div className="flex items-center gap-4">
@@ -124,7 +123,7 @@ export default function ClassScheduleTab({ classId }: { classId: number }) {
                       <p className="text-xs font-bold text-gray-500 mt-1">📍 Phòng: {sch.room || 'Chưa xếp phòng'}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button onClick={() => setEditingSchedule(sch)} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-sky-100 hover:text-sky-600 transition-colors font-bold" title="Sửa">✏️</button>
                     <button onClick={async () => {

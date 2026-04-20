@@ -9,24 +9,23 @@ const MENUS = {
   student: [
     { name: 'Bảng Của Tớ', icon: '🏠', path: '/' },
     { name: 'Lớp học', icon: '📚', path: '/classes' },
+    { name: 'Lịch Học', icon: '📅', path: '/schedule' },
     { name: 'Nhật Ký', icon: '📝', path: '/diary' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   teacher: [
     { name: 'Trang chủ', icon: '🏠', path: '/' },
     { name: 'Lớp Học', icon: '🏫', path: '/classes' },
+    { name: 'Lịch Dạy', icon: '📅', path: '/schedule' },
     { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
     // { name: 'Học Sinh', icon: '👥', path: '/students' },
-    { name: 'Báo Cáo', icon: '📊', path: '/reports' },
     { name: 'Nhắn tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
   parent: [
     { name: 'Tổng Quan', icon: '👁️', path: '/' },
     { name: 'Gia Đình', icon: '👨‍👩‍👧‍👦', path: '/family' },
-    { name: 'Kết Quả', icon: '📈', path: '/progress' },
-    { name: 'Lịch Học', icon: '📅', path: '/schedule' },
     { name: 'Nhắn Tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
@@ -47,10 +46,10 @@ export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teac
   const handleLogout = async () => {
     // 1. Gọi API xé thẻ Cookie
     await logoutAction();
-    
+
     // 2. Ép trình duyệt đá văng ra trang Login
     router.push('/login');
-    
+
     // 3. Làm mới lại toàn bộ trang để xóa sạch tàn dư dữ liệu cũ
     router.refresh();
   };
@@ -76,11 +75,10 @@ export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teac
           const isActive = pathname === item.path;
           return (
             <Link key={item.path} href={item.path}>
-              <div className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all transform hover:-translate-y-1 hover:shadow-md ${
-                isActive 
-                  ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]' 
+              <div className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all transform hover:-translate-y-1 hover:shadow-md ${isActive
+                  ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]'
                   : 'bg-gray-50 text-gray-600 hover:bg-blue-50'
-              }`}>
+                }`}>
                 <span className="text-2xl drop-shadow-sm">{item.icon}</span>
                 <span className="text-lg">{item.name}</span>
               </div>
@@ -92,8 +90,8 @@ export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teac
       {/* Nút Đăng xuất */}
       <div className="mt-auto pt-4 border-t-4 border-gray-100">
         {/* Gắn sự kiện onClick={handleLogout} vào đây */}
-        <button 
-          onClick={handleLogout} 
+        <button
+          onClick={handleLogout}
           className="flex w-full items-center justify-center gap-2 px-4 py-4 bg-rose-100 text-rose-600 font-bold rounded-2xl hover:bg-rose-200 hover:-translate-y-1 hover:shadow-[0_4px_0_rgb(225,29,72)] transition-all"
         >
           <span className="text-xl">🚪</span>

@@ -58,14 +58,18 @@ export async function getClassScheduleAction(classId: number) {
   }
 }
 
-export async function getMyWeeklyScheduleAction() {
+export async function getMyWeeklyScheduleAction(studentId?: number) {
   const token = (await cookies()).get('session')?.value;
   const user = token ? getUserFromToken(token) : null;
   
   if (!user) return { success: false, data: [] };
 
   try {
-    const data = await getMyWeeklyScheduleService(user.id, user.role);
+    // Nếu là phụ huynh và có truyền studentId, ưu tiên lấy lịch của con đó
+    const roleToUse = (user.role === 'parent' && studentId) ? 'student' : user.role;
+    const idToUse = (user.role === 'parent' && studentId) ? studentId : user.id;
+
+    const data = await getMyWeeklyScheduleService(idToUse, roleToUse);
     return { success: true, data };
   } catch (error) {
     console.error(error);

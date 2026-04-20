@@ -21,9 +21,7 @@ export default function TeacherClassDetailPage({ params }: { params: Promise<{ c
   return (
     <div className="max-w-7xl mx-auto pb-10 px-4 lg:px-8">
       {/* NÚT QUAY LẠI */}
-      <button onClick={() => router.push('/classes')} className="mb-6 font-bold text-gray-500 hover:text-sky-500 flex items-center gap-2 transition-colors">
-        <span>⬅</span> Quay lại danh sách lớp
-      </button>
+
 
       {/* HEADER LỚP HỌC - LIGHT MODE */}
       <div className="bg-white rounded-[2rem] shadow-sm p-8 mb-8 border-2 border-sky-100 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
