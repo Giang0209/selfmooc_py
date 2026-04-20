@@ -44,34 +44,34 @@ function ScheduleContent() {
   return (
     <div style={{ minHeight: '100%', backgroundColor: '#AEE2FF', padding: '10px', fontFamily: 'inherit', borderRadius: '40px' }}>
       <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '40px', padding: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '10px solid rgba(255,255,255,0.5)', position: 'relative' }}>
-        
+
         {/* NÚT QUAY LẠI (Nếu là phụ huynh) */}
         {displayInfo?.viewingAsChild && (
-           <button 
-             onClick={() => router.back()}
-             style={{ position: 'absolute', top: '20px', left: '20px', padding: '10px 20px', backgroundColor: '#F0F9FF', border: '2px solid #00AEEF', color: '#00AEEF', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer' }}
-           >
-             ⬅ Quay lại
-           </button>
+          <button
+            onClick={() => router.back()}
+            style={{ position: 'absolute', top: '20px', left: '20px', padding: '10px 20px', backgroundColor: '#F0F9FF', border: '2px solid #00AEEF', color: '#00AEEF', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            ⬅ Quay lại
+          </button>
         )}
 
         {/* HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '40px', mdFontSize: '60px', fontWeight: '900', color: '#00AEEF', margin: 0, textTransform: 'uppercase', letterSpacing: '-2px' }}>
+          <h1 className="text-[40px] md:text-[60px] font-black text-[#00AEEF] m-0 uppercase tracking-[-2px]">
             Thời khóa biểu
           </h1>
           {(displayInfo?.role === 'student' || displayInfo?.viewingAsChild) && (
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#666', marginTop: '10px' }}>
-                Học sinh: <span style={{ color: '#00AEEF' }}>{displayInfo.studentName}</span> 
-                {' | '}
-                Lớp: <span style={{ textDecoration: 'underline dotted', color: '#00AEEF' }}>{displayInfo.className}</span>
+              Học sinh: <span style={{ color: '#00AEEF' }}>{displayInfo.studentName}</span>
+              {' | '}
+              Lớp: <span style={{ textDecoration: 'underline dotted', color: '#00AEEF' }}>{displayInfo.className}</span>
             </div>
           )}
         </div>
 
         {/* CONTAINER CHÍNH */}
         <div style={{ display: 'flex', gap: '15px' }}>
-          
+
           {/* CỘT SÁNG CHIỀU */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingTop: '70px', width: '70px' }}>
             <div style={{ flex: 1, backgroundColor: '#00AEEF', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -130,8 +130,8 @@ function ScheduleContent() {
 
         {/* FOOTER */}
         <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', opacity: 0.5 }}>
-           <div style={{ fontSize: '30px' }}>📚 ✏️ ☁️</div>
-           <div style={{ fontWeight: 'bold', color: '#00AEEF' }}>#SelfMOOC</div>
+          <div style={{ fontSize: '30px' }}>📚 ✏️ ☁️</div>
+          <div style={{ fontWeight: 'bold', color: '#00AEEF' }}>#SelfMOOC</div>
         </div>
       </div>
     </div>
