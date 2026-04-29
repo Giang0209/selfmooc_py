@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 // 🎯 Import thêm hàm uploadFileToMongoGridFS
-import { getCourseDocumentsService, createCourseDocumentService, deleteDocumentService, uploadFileToMongoGridFS } from '../services/document.service';
+import { getCourseDocumentsService, createCourseDocumentService, deleteDocumentService } from '../services/document.service';
 
 function getUserFromToken(token: string) {
   try {
@@ -34,9 +34,11 @@ export async function createCourseDocAction(formData: FormData) {
 
   const courseId = Number(formData.get('course_id'));
 
-  // 🎯 LẤY FILE TỪ FORM DATA RA
-  const file = formData.get('file') as File;
-  if (!file || file.size === 0) return { success: false, message: 'Không tìm thấy file đính kèm hợp lệ' };
+  //  LẤY FILE ID TỪ FRONTEND
+  const gridFsFileId = formData.get('gridfs_file_id') as string;
+  if (!gridFsFileId) {
+    return { success: false, message: 'Thiếu fileId (chưa upload file)' };
+  }
 
   const schema = z.object({
     title: z.string().min(3, 'Tên tài liệu quá ngắn'),
@@ -44,29 +46,25 @@ export async function createCourseDocAction(formData: FormData) {
       .refine(val => !!val, { message: "Invalid document type" }),
     chapter: z.string().optional(),
     description: z.string().optional(),
-    file_ext: z.string().optional(), 
-    file_size_kb: z.coerce.number().optional() 
+    file_ext: z.string().optional(),
+    file_size_kb: z.coerce.number().optional()
   });
 
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { success: false, message: parsed.error.issues[0].message };
 
   try {
-    // 🎯 ÉP FILE THÀNH NHỊ PHÂN VÀ BƠM VÀO MONGODB
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Đẩy xuống Service và hứng lấy ID của file trong GridFS
-    const gridFsFileId = await uploadFileToMongoGridFS(buffer, file.name, file.type);
+
 
     // Truyền ID này xuống để Service lưu vào trường storage_url
-    await createCourseDocumentService(user.id, { 
-      ...parsed.data, 
+    await createCourseDocumentService(user.id, {
+      ...parsed.data,
       course_id: courseId,
-      gridfs_file_id: gridFsFileId 
+      gridfs_file_id: gridFsFileId
     });
 
     // Reset lại cache của trang (Sửa lại path cho đúng với thư mục bạn chụp ảnh)
-    revalidatePath(`/courses/${courseId}`); 
+    revalidatePath(`/courses/${courseId}`);
     return { success: true, message: '📄 Đã lưu file thẳng vào Database thành công!' };
   } catch (error: any) {
     console.error(error);

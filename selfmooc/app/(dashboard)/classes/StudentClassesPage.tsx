@@ -2,26 +2,42 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getMyLearningAction } from '@/modules/courses/controller/course.action'; 
+import { getMyLearningAction } from '@/modules/courses/controller/course.action';
 // 🎯 1. IMPORT COMPONENT LỊCH HỌC VÀO ĐÂY
-import ClassScheduleBadge from '@/app/components/ClassScheduleBadge'; 
+import ClassScheduleBadge from '@/app/components/ClassScheduleBadge';
 
 export default function StudentClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
+  //Search
+  const [search, setSearch] = useState('');
+  const [filteredClasses, setFilteredClasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadClasses() {
       const res = await getMyLearningAction();
-      if (res.success) setClasses(res.data);
+      if (res.success) {
+        setClasses(res.data);
+        setFilteredClasses(res.data);
+      }
       setIsLoading(false);
     }
     loadClasses();
   }, []);
 
+  useEffect(() => {
+    const filtered = classes.filter(cls =>
+      cls.class_name?.toLowerCase().includes(search.toLowerCase()) ||
+      cls.course_name?.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredClasses(filtered);
+  }, [search, classes]);
+
   if (isLoading) {
     return <div className="text-center mt-20 text-xl font-bold text-sky-500 animate-pulse">⏳ Đang tải lớp học của bạn...</div>;
   }
+
+
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
@@ -33,7 +49,30 @@ export default function StudentClassesPage() {
         </div>
       </div>
 
-      {classes.length === 0 ? (
+      {/* 🔍 SEARCH + SORT */}
+      <div className="mb-6 flex gap-3 items-center">
+        <input
+          type="text"
+          placeholder="🔍 Tìm lớp..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-5 py-3 border-2 border-gray-200 rounded-2xl w-full max-w-md"
+        />
+
+        <button
+          onClick={() => {
+            const sorted = [...filteredClasses].sort((a, b) =>
+              (a.class_name || '').localeCompare(b.class_name || '')
+            );
+            setFilteredClasses(sorted);
+          }}
+          className="px-4 py-3 bg-gray-100 rounded-2xl font-bold"
+        >
+          🔤 A-Z
+        </button>
+      </div>
+
+      {filteredClasses.length === 0 ? (
         <div className="bg-white rounded-[3rem] p-20 text-center border-4 border-dashed border-gray-200 shadow-inner">
           <span className="text-8xl mb-6 block">🏝️</span>
           <h3 className="text-2xl font-black text-gray-400">Bạn chưa tham gia lớp nào!</h3>
@@ -41,7 +80,7 @@ export default function StudentClassesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {classes.map((cls) => (
+          {filteredClasses.map((cls) => (
             <div key={cls.class_id} className="group bg-white rounded-[3rem] p-8 shadow-xl border-4 border-sky-100 hover:border-blue-400 hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-gradient-to-l from-blue-500 to-sky-400 text-white px-6 py-2 rounded-bl-[2rem] font-black text-xs shadow-md">
                 {cls.academic_year}
@@ -55,7 +94,7 @@ export default function StudentClassesPage() {
                 <h2 className="text-2xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors mb-4">
                   {cls.class_name}
                 </h2>
-                
+
                 {/* 🎯 2. NHÚNG LỊCH HỌC VÀO ĐÂY (Ngay dưới tên lớp) */}
                 <div className="w-fit">
                   <ClassScheduleBadge classId={cls.class_id} />

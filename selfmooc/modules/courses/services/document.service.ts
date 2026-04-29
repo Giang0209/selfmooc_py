@@ -1,8 +1,7 @@
 import { getCourseDocumentsDB, createCourseDocumentDB, deleteDocumentDB } from '../models/document.model';
 import { ObjectId, GridFSBucket } from 'mongodb'; // 🎯 Thêm GridFSBucket
-import { getMongoDb } from '@/lib/db'; 
+import { getMongoDb } from '@/lib/db';
 import { Readable } from 'stream'; // 🎯 Thêm Stream để đọc nhị phân
-import { file } from 'zod/v4/mini';
 
 export async function getCourseDocumentsService(courseId: number) {
   // 1. Lấy danh sách tài liệu từ Postgres
@@ -27,31 +26,7 @@ export async function getCourseDocumentsService(courseId: number) {
   });
 }
 
-// 🎯 HÀM MỚI: Bơm file thẳng vào MongoDB GridFS
-export async function uploadFileToMongoGridFS(fileBuffer: Buffer, fileName: string, mimeType: string) {
-  const db = await getMongoDb();
-  const bucket = new GridFSBucket(db, { bucketName: 'course_files' });
 
-  return new Promise<string>((resolve, reject) => {
-    
-    // 🎯 SỬA LẠI CHUẨN MONGODB DRIVER V4/V5: Nhét vào trong hộp metadata
-    const uploadStream = bucket.openUploadStream(fileName, {
-      metadata: {
-        contentType: mimeType
-      }
-    });
-
-    const readableStream = new Readable();
-    readableStream.push(fileBuffer);
-    readableStream.push(null);
-
-    readableStream.pipe(uploadStream)
-      .on('error', (error) => reject(error))
-      .on('finish', () => {
-        resolve(uploadStream.id.toString());
-      });
-  });
-}
 
 export async function createCourseDocumentService(teacherId: number, data: any) {
   const newMongoId = new ObjectId();
@@ -66,16 +41,16 @@ export async function createCourseDocumentService(teacherId: number, data: any) 
       chapter: data.chapter,
       file_ext: data.file_ext,
       file_size_kb: data.file_size_kb,
-      mongo_id: newMongoId.toString() 
+      mongo_id: newMongoId.toString()
     });
 
     const mongoDb = await getMongoDb();
     await mongoDb.collection('document_content').insertOne({
       _id: newMongoId,
-      pg_document_id: newPgDocument.document_id, 
+      pg_document_id: newPgDocument.document_id,
       title: data.title,
       // 🎯 Lưu link chứa ID của file. Lúc nào cần xem, gọi API này là file tự trào ra!
-      storage_url: `/api/files/${data.gridfs_file_id}`, 
+      storage_url: `/api/files/${data.gridfs_file_id}`,
       cdn_url: data.cdn_url || '',
       processing_status: 'done',
       created_at: new Date(),
@@ -91,7 +66,7 @@ export async function createCourseDocumentService(teacherId: number, data: any) 
 export async function deleteDocumentService(documentId: number, teacherId: number) {
   // 1. Cắt đứt ở Postgres và lấy ID của Mongo
   const mongoIdStr = await deleteDocumentDB(documentId, teacherId);
-  
+
   if (!mongoIdStr) {
     throw new Error('Không thể xóa. Tài liệu không tồn tại hoặc bạn không có quyền!');
   }
@@ -100,15 +75,15 @@ export async function deleteDocumentService(documentId: number, teacherId: numbe
   try {
     const db = await getMongoDb();
     const mongoId = new ObjectId(mongoIdStr);
-    
+
     // 🎯 2.1 Lấy thông tin tài liệu từ Mongo để dò tìm ID của file cứng
     const documentContent = await db.collection('document_content').findOne({ _id: mongoId });
-    
+
     if (documentContent) {
       // 🎯 2.2 Trích xuất ID file từ storage_url (ví dụ: /api/files/60a7...)
       if (documentContent.storage_url && documentContent.storage_url.includes('/api/files/')) {
         const gridFsFileIdStr = documentContent.storage_url.split('/').pop(); // Cắt lấy đuôi URL
-        
+
         if (gridFsFileIdStr) {
           const bucket = new GridFSBucket(db, { bucketName: 'course_files' });
           try {
@@ -125,7 +100,7 @@ export async function deleteDocumentService(documentId: number, teacherId: numbe
       await db.collection('document_content').deleteOne({ _id: mongoId });
       console.log(`🗑️ Đã xóa siêu dữ liệu tài liệu khỏi MongoDB: ${mongoIdStr}`);
     }
-    
+
     return true;
   } catch (error: any) {
     console.error('🔥 Lỗi khi dọn rác tài liệu MongoDB:', error);

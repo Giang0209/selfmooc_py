@@ -74,29 +74,53 @@ export default function CourseDetailPage() {
 
   const handleUploadDoc = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (!selectedFile) return alert("⚠️ Vui lòng chọn file!");
     setIsUploading(true);
 
-    const formData = new FormData(e.currentTarget);
-    formData.append('course_id', courseId.toString());
-    formData.append('file', selectedFile);
+    try {
+      const uploadForm = new FormData();
+      uploadForm.append('file', selectedFile);
 
-    const ext = selectedFile.name.split('.').pop()?.toLowerCase() || 'unknown';
-    const sizeKb = Math.round(selectedFile.size / 1024);
-    formData.append('file_ext', ext);
-    formData.append('file_size_kb', sizeKb.toString());
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadForm
+      });
 
-    const result = await createCourseDocAction(formData);
-    if (result.success) {
-      (e.target as HTMLFormElement).reset();
-      setSelectedFile(null);
-      loadAllData();
-    } else {
-      alert(result.message);
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error(uploadData.message);
+
+      const fileId = uploadData.fileId;
+
+      // 🔥 FIX Ở ĐÂY
+      const form = e.target as HTMLFormElement;
+      const formData = new FormData(form);
+
+      formData.append('course_id', courseId.toString());
+      formData.append('gridfs_file_id', fileId);
+
+      const ext = selectedFile.name.split('.').pop()?.toLowerCase() || 'unknown';
+      const sizeKb = Math.round(selectedFile.size / 1024);
+
+      formData.append('file_ext', ext);
+      formData.append('file_size_kb', sizeKb.toString());
+
+      const result = await createCourseDocAction(formData);
+
+      if (result.success) {
+        form.reset(); // 🔥 cũng sửa luôn
+        setSelectedFile(null);
+        loadAllData();
+      } else {
+        alert(result.message);
+      }
+
+    } catch (err: any) {
+      alert("❌ Upload lỗi: " + err.message);
     }
+
     setIsUploading(false);
   };
-
   const handleDeleteDoc = async (docId: number) => {
     if (window.confirm('Xóa tài liệu này?')) {
       const res = await deleteCourseDocAction(docId, courseId);

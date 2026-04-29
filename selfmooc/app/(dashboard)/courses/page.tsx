@@ -20,9 +20,23 @@ export default function TeacherCoursesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
+  //Search
+  const [search, setSearch] = useState('');
+  const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
+  useEffect(() => {
+    const filtered = courses.filter(course =>
+      course.name.toLowerCase().includes(search.toLowerCase()) ||
+      course.code.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredCourses(filtered);
+  }, [search, courses]);
+
   const loadCourses = async () => {
     const res = await getMyCoursesAction();
-    if (res.success) setCourses(res.data);
+    if (res.success) {
+      setCourses(res.data);
+      setFilteredCourses(res.data);
+    }
     setIsLoading(false);
   };
 
@@ -91,6 +105,10 @@ export default function TeacherCoursesPage() {
     }
   };
 
+
+
+
+
   return (
     <div className="max-w-6xl mx-auto pb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -106,6 +124,28 @@ export default function TeacherCoursesPage() {
         </button>
       </div>
 
+      <div className="mb-6 flex gap-3 items-center">
+        <input
+          type="text"
+          placeholder="🔍 Tìm môn học..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-5 py-3 border-2 border-gray-200 rounded-2xl w-full max-w-md focus:outline-none focus:border-blue-400"
+        />
+
+        <button
+          onClick={() => {
+            const sorted = [...filteredCourses].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            );
+            setFilteredCourses(sorted);
+          }}
+          className="px-4 py-3 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200"
+        >
+          🔤 A-Z
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="text-center mt-20 text-xl font-bold text-gray-400 animate-pulse">⏳ Đang tải dữ liệu...</div>
       ) : courses.length === 0 ? (
@@ -115,7 +155,7 @@ export default function TeacherCoursesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {filteredCourses.map((course) => (
             <div key={course.course_id} className="bg-white rounded-3xl overflow-hidden shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 relative group" style={{ borderColor: course.theme_color || '#e5e7eb' }}>
 
               {/* NÚT XÓA (Chỉ hiện khi di chuột vào thẻ) */}

@@ -20,7 +20,7 @@ export const pgPool =
     connectionString: pgConnectionString,
     // Neon Serverless Pooler xử lý connection rất tốt, 
     // giữ max 10-20 là an toàn cho môi trường dev/free tier
-    max: 15, 
+    max: 15,
     idleTimeoutMillis: 30000,
   });
 
@@ -38,8 +38,8 @@ if (!mongoUri) {
   throw new Error('Thiếu MONGODB_URI trong file .env.local');
 }
 
-const globalForMongo = globalThis as unknown as { 
-  _mongoClientPromise: Promise<MongoClient> 
+const globalForMongo = globalThis as unknown as {
+  _mongoClientPromise: Promise<MongoClient>
 };
 
 let mongoClientPromise: Promise<MongoClient>;
@@ -64,5 +64,5 @@ if (process.env.NODE_ENV === 'development') {
 export async function getMongoDb(): Promise<Db> {
   const client = await mongoClientPromise;
   // Thay 'lms_db' bằng tên database thực tế của bạn trên Atlas nếu khác
-  return client.db('lms_db'); 
+  return client.db('lms_db');
 }

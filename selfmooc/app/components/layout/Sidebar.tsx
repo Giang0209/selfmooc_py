@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-// Nhớ import hàm logout vừa viết nhé (sửa đường dẫn nếu cần)
 import { logoutAction } from '@/modules/auth/controller/auth.action';
+import { useState } from 'react';
 
 const MENUS = {
   student: [
@@ -15,12 +15,10 @@ const MENUS = {
   ],
   teacher: [
     { name: 'Trang chủ', icon: '🏠', path: '/' },
+    { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Lớp Học', icon: '🏫', path: '/classes' },
     { name: 'Lịch Dạy', icon: '📅', path: '/schedule' },
-    { name: 'Khóa Học', icon: '📚', path: '/courses' },
     { name: 'Chấm Bài', icon: '✅', path: '/grading' },
-    // { name: 'Học Sinh', icon: '👥', path: '/students' },
-    // { name: 'Báo Cáo', icon: '📊', path: '/reports' },
     { name: 'Nhắn tin', icon: '💬', path: '/chats' },
     { name: 'Hồ Sơ', icon: '🪪', path: '/profile' },
   ],
@@ -38,66 +36,105 @@ const ROLE_NAMES = {
   parent: 'Phụ huynh',
 };
 
-export default function Sidebar({ role = 'student' }: { role?: 'student' | 'teacher' | 'parent' }) {
+export default function Sidebar({
+  role = 'student',
+}: {
+  role?: 'student' | 'teacher' | 'parent';
+}) {
   const pathname = usePathname();
-  const router = useRouter(); // Gọi bộ chuyển hướng
+  const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
+
   const currentMenu = MENUS[role] || MENUS.student;
 
-  // HÀM XỬ LÝ ĐĂNG XUẤT
   const handleLogout = async () => {
-    // 1. Gọi API xé thẻ Cookie
     await logoutAction();
-
-    // 2. Ép trình duyệt đá văng ra trang Login
     router.push('/login');
-
-    // 3. Làm mới lại toàn bộ trang để xóa sạch tàn dư dữ liệu cũ
     router.refresh();
   };
 
+  const ITEM_BASE =
+    'flex items-center justify-center w-full rounded-2xl font-bold transition-all hover:-translate-y-1 hover:shadow-md';
+
   return (
-    <aside className="w-64 bg-white border-r-4 border-sky-100 flex flex-col p-4 shadow-xl z-20">
-      {/* Logo */}
-      <div className="flex flex-col items-center justify-center gap-1 mb-8 mt-2">
-        <div className="flex items-center gap-2">
-          <span className="text-3xl animate-bounce">🚀</span>
-          <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-purple-500">
-            SelfMOOC
-          </h1>
+    <aside
+      className={`bg-white border-r-4 border-sky-100 flex flex-col p-4 shadow-xl z-20 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'
+        }`}
+    >
+
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col gap-3 mb-6 mt-2">
+
+        {/* 1. TOGGLE (trên cùng) */}
+        <div className="flex justify-center">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-gray-500 hover:text-black text-xl"
+          >
+            {collapsed ? '⏩' : '⏪'}
+          </button>
         </div>
-        <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-          Phân quyền: {ROLE_NAMES[role]}
-        </span>
+
+        {/* 2. LOGO */}
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-3xl animate-bounce">🚀</span>
+
+          {!collapsed && (
+            <span className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-purple-500">
+              SelfMOOC
+            </span>
+          )}
+        </div>
+
+        {/* 3. ROLE */}
+        {!collapsed && (
+          <div className="flex justify-center">
+            <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Phân quyền: {ROLE_NAMES[role]}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Danh sách Menu */}
-      <nav className="flex-1 space-y-3">
+      {/* ================= MENU ================= */}
+      <nav className="flex-1 flex flex-col gap-3 items-center">
+
         {currentMenu.map((item) => {
           const isActive = pathname === item.path;
+
           return (
-            <Link key={item.path} href={item.path}>
-              <div className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all transform hover:-translate-y-1 hover:shadow-md ${isActive
-                ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]'
-                : 'bg-gray-50 text-gray-600 hover:bg-blue-50'
-                }`}>
-                <span className="text-2xl drop-shadow-sm">{item.icon}</span>
-                <span className="text-lg">{item.name}</span>
+            <Link key={item.path} href={item.path} className="w-full">
+              <div
+                className={`${ITEM_BASE} ${collapsed ? 'h-12 px-0' : 'px-4 py-4 gap-4'
+                  } ${isActive
+                    ? 'bg-blue-400 text-white shadow-[0_4px_0_rgb(37,99,235)]'
+                    : 'bg-gray-50 text-gray-600 hover:bg-blue-50'
+                  }`}
+              >
+                <span className="text-2xl">{item.icon}</span>
+
+                {!collapsed && (
+                  <span className="text-lg">{item.name}</span>
+                )}
               </div>
             </Link>
           );
         })}
       </nav>
 
-      {/* Nút Đăng xuất */}
-      <div className="mt-auto pt-4 border-t-4 border-gray-100">
-        {/* Gắn sự kiện onClick={handleLogout} vào đây */}
+      {/* ================= LOGOUT ================= */}
+      <div className="mt-auto pt-4 border-t-4 border-gray-100 flex justify-center w-full">
+
         <button
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 px-4 py-4 bg-rose-100 text-rose-600 font-bold rounded-2xl hover:bg-rose-200 hover:-translate-y-1 hover:shadow-[0_4px_0_rgb(225,29,72)] transition-all"
+          className={`${ITEM_BASE} ${collapsed ? 'h-12 px-0' : 'px-4 py-4 gap-2'
+            } bg-rose-100 text-rose-600 hover:bg-rose-200`}
         >
           <span className="text-xl">🚪</span>
-          Thoát ra
+
+          {!collapsed && <span>Thoát ra</span>}
         </button>
+
       </div>
     </aside>
   );

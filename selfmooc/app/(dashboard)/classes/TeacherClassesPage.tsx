@@ -10,10 +10,14 @@ export default function TeacherClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+
+  //Search
+  const [search, setSearch] = useState('');
+  const [filteredClasses, setFilteredClasses] = useState<any[]>([]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -22,7 +26,10 @@ export default function TeacherClassesPage() {
       getMyClassesListAction(),
       getMyCoursesAction()
     ]);
-    if (clsRes.success) setClasses(clsRes.data);
+    if (clsRes.success) {
+      setClasses(clsRes.data);
+      setFilteredClasses(clsRes.data);
+    }
     if (crsRes.success) setAvailableCourses(crsRes.data);
     setIsLoading(false);
   };
@@ -31,14 +38,22 @@ export default function TeacherClassesPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const filtered = classes.filter(cls =>
+      cls.name?.toLowerCase().includes(search.toLowerCase()) ||
+      cls.course_name?.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredClasses(filtered);
+  }, [search, classes]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
-    
+
     const formData = new FormData(e.currentTarget);
     const result = await createNewClassAction(formData);
-    
+
     if (result.success) {
       setMessage(result.message);
       loadData();
@@ -61,15 +76,38 @@ export default function TeacherClassesPage() {
           </h1>
           <p className="text-gray-500 mt-1 font-medium">Chọn lớp để quản lý học sinh, bài tập và gửi thông báo</p>
         </div>
-        
+
         <button onClick={() => { setIsModalOpen(true); setMessage(''); }} className="px-6 py-3 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 hover:-translate-y-1 transition-all shadow-[0_4px_0_rgb(37,99,235)] active:translate-y-[2px] active:shadow-none">
           ➕ Mở Lớp Mới
         </button>
       </div>
 
+      {/* 🔍 SEARCH + SORT */}
+      <div className="mb-6 flex gap-3 items-center">
+        <input
+          type="text"
+          placeholder="🔍 Tìm lớp..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-5 py-3 border-2 border-gray-200 rounded-2xl w-full max-w-md focus:outline-none focus:border-blue-400"
+        />
+
+        <button
+          onClick={() => {
+            const sorted = [...filteredClasses].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            );
+            setFilteredClasses(sorted);
+          }}
+          className="px-4 py-3 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200"
+        >
+          🔤 A-Z
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="text-center mt-20 text-xl font-bold text-gray-400 animate-pulse">⏳ Đang tải dữ liệu...</div>
-      ) : classes.length === 0 ? (
+      ) : filteredClasses.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-gray-300">
           <span className="text-6xl mb-4 block">🏝️</span>
           <h3 className="text-2xl font-bold text-gray-600">Thầy cô chưa mở lớp nào!</h3>
@@ -77,7 +115,7 @@ export default function TeacherClassesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((cls) => (
+          {filteredClasses.map((cls) => (
             <div key={cls.class_id} className="bg-white rounded-3xl overflow-hidden shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 relative group" style={{ borderColor: cls.theme_color || '#e5e7eb' }}>
               <div className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1 rounded-bl-2xl font-bold text-xs shadow-sm z-10">
                 Kỳ {cls.semester} | {cls.academic_year}
@@ -92,7 +130,7 @@ export default function TeacherClassesPage() {
                     <h3 className="text-xl font-bold text-gray-800 line-clamp-1">{cls.name}</h3>
                   </div>
                 </div>
-                
+
                 <div className="mb-4">
                   <ClassScheduleBadge classId={cls.class_id} />
                 </div>
@@ -106,7 +144,7 @@ export default function TeacherClassesPage() {
                     👥 {cls.student_count}/{cls.max_students} Học sinh
                   </div>
                 </div>
-                
+
                 <Link href={`/classes/${cls.class_id}`} className="block w-full text-center py-3 bg-sky-50 text-sky-600 font-bold rounded-xl hover:bg-blue-500 hover:text-white hover:shadow-[0_4px_0_rgb(37,99,235)] transition-all">
                   🚀 VÀO LỚP HỌC
                 </Link>
@@ -124,7 +162,7 @@ export default function TeacherClassesPage() {
               <h2 className="text-2xl font-bold">✨ Mở Lớp Học Mới</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white hover:rotate-90 transition-transform text-2xl">✖</button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Kế thừa từ Khóa học gốc *</label>

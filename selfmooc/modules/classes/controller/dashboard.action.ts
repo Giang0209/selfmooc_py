@@ -39,19 +39,64 @@ export async function getDashboardStatsAction() {
     }
 
     if (user.role === 'parent') {
-        const stats = await client.query(`
-            SELECT 
-                s.student_id,
-                s.name as student_name,
-                COALESCE(avg(sub.grade), 0) as avg_grade,
-                (SELECT count(*) FROM attendance WHERE student_id = s.student_id AND status = 'absent') as absences
-            FROM parent_student ps
-            JOIN student s ON ps.student_id = s.student_id
-            LEFT JOIN submission sub ON s.student_id = sub.student_id AND sub.status = 'graded'
-            WHERE ps.parent_id = $1
-            GROUP BY s.student_id, s.name
-        `, [user.id]);
-        return { success: true, data: stats.rows }; // Trả về mảng vì có thể có nhiều con
+      const stats = await client.query(`
+        SELECT 
+            s.student_id,
+            s.name as student_name,
+
+            -- 🎯 điểm trung bình
+            COALESCE(AVG(sub.grade), 0) as avg_grade,
+
+            -- 🎯 số buổi nghỉ
+            COALESCE((
+                SELECT COUNT(*) 
+                FROM attendance 
+                WHERE student_id = s.student_id 
+                AND status = 'absent'
+            ), 0) as absences,
+
+            -- 🎯 xếp loại học tập
+            CASE 
+                WHEN COALESCE(AVG(sub.grade), 0) >= 8 THEN 'excellent'
+                WHEN COALESCE(AVG(sub.grade), 0) >= 5 THEN 'good'
+                ELSE 'weak'
+            END as academic_status,
+
+            -- 🎯 trạng thái chuyên cần
+            CASE 
+                WHEN (
+                    SELECT COUNT(*) 
+                    FROM attendance 
+                    WHERE student_id = s.student_id 
+                    AND status = 'absent'
+                ) > 2 
+                THEN 'warning'
+                ELSE 'ok'
+            END as attendance_status,
+
+            -- 🎯 có cần gửi thông báo không
+            CASE 
+                WHEN (
+                    SELECT COUNT(*) 
+                    FROM attendance 
+                    WHERE student_id = s.student_id 
+                    AND status = 'absent'
+                ) > 2 
+                OR COALESCE(AVG(sub.grade), 0) < 5
+                THEN true
+                ELSE false
+            END as need_notify
+
+        FROM parent_student ps
+        JOIN student s ON ps.student_id = s.student_id
+        LEFT JOIN submission sub 
+            ON s.student_id = sub.student_id 
+            AND sub.status = 'graded'
+        WHERE ps.parent_id = $1
+        GROUP BY s.student_id, s.name
+    `, [user.id]);
+
+      return { success: true, data: stats.rows };
     }
     return { success: false, message: 'Role không hợp lệ' };
   } catch (error) {
@@ -81,15 +126,15 @@ export async function getScheduleDisplayInfoAction(studentId?: number) {
         WHERE s.student_id = $1
         LIMIT 1
       `, [targetStudentId]);
-      
-      return { 
-        success: true, 
-        data: { 
-          className: res.rows[0]?.class_name || 'Chưa phân lớp', 
+
+      return {
+        success: true,
+        data: {
+          className: res.rows[0]?.class_name || 'Chưa phân lớp',
           studentName: res.rows[0]?.student_name,
           role: user.role,
           viewingAsChild: user.role === 'parent'
-        } 
+        }
       };
     }
 

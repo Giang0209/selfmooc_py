@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // Nhớ import 2 hàm mới vào đây nhé!
-import { getProfileAction, updateProfileAction, requestOtpAction, changePasswordAction } from '@/modules/profile/controller/profile.action';
+import { getProfileAction, updateProfileAction, changePasswordAction } from '@/modules/profile/controller/profile.action';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function ProfilePage() {
   // State Form Đổi Pass
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [passMessage, setPassMessage] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
+
   const formPassRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -49,17 +49,7 @@ export default function ProfilePage() {
     setIsSaving(false);
   };
 
-  // Xử lý Yêu cầu gửi OTP
-  const handleRequestOtp = async () => {
-    setPassMessage('⏳ Đang tạo mã...');
-    const result = await requestOtpAction();
-    if (result.success) {
-      setIsOtpSent(true);
-      setPassMessage(result.message);
-    } else {
-      setPassMessage(result.message);
-    }
-  };
+
 
   // Xử lý Submit Form Đổi Pass
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,7 +63,7 @@ export default function ProfilePage() {
     setPassMessage(result.message);
     if (result.success) {
       formPassRef.current?.reset(); // Xóa trắng ô nhập liệu
-      setIsOtpSent(false); // Reset trạng thái OTP
+
     }
     setIsChangingPass(false);
   };
@@ -88,8 +78,8 @@ export default function ProfilePage() {
 
         <div className="flex items-center justify-center gap-3 mb-8">
           <span className="text-4xl">🪪</span>
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
-            Hồ Sơ Của Tớ
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-500 to-pink-500">
+            Hồ Sơ Thông Tin Cá Nhân
           </h1>
         </div>
 
@@ -165,56 +155,82 @@ export default function ProfilePage() {
 
             {/* --- BLOCK 2: ĐỔI MẬT KHẨU --- */}
             <div className="bg-white rounded-3xl shadow-xl p-8 border-4 border-rose-100">
-              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2"><span>🔐</span> Đổi mật khẩu bí mật</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span>🔐</span> Đổi mật khẩu bí mật
+              </h3>
 
-              {/* Nếu là người lớn & chưa gửi OTP -> Hiện nút Lấy OTP */}
-              {(profile?.role === 'teacher' || profile?.role === 'parent') && !isOtpSent ? (
-                <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-4">Để đảm bảo an toàn, chúng tôi cần gửi một mã xác nhận (OTP) vào email của bạn.</p>
-                  <button onClick={handleRequestOtp} className="w-full py-4 px-4 text-lg font-black text-rose-600 bg-rose-100 border-2 border-rose-200 rounded-2xl hover:bg-rose-200 transition-all">
-                    📩 NHẬN MÃ XÁC NHẬN (OTP)
-                  </button>
-                  {passMessage && <div className="mt-4 p-3 rounded-xl text-sm font-bold bg-blue-100 text-blue-600">{passMessage}</div>}
+              {/* FORM DUY NHẤT (AI CŨNG DÙNG GIỐNG STUDENT) */}
+              <form
+                ref={formPassRef}
+                onSubmit={handlePasswordSubmit}
+                className="space-y-5 animate-fade-in-down"
+              >
+                {/* Mật khẩu cũ */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    🔒 Mật khẩu hiện tại
+                  </label>
+                  <input
+                    name="old_password"
+                    type="password"
+                    required
+                    placeholder="Nhập mật khẩu đang dùng..."
+                    className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all"
+                  />
                 </div>
-              ) : (
-                /* Form nhập Pass (Hiện ngay nếu là học sinh, hoặc đã lấy OTP) */
-                <form ref={formPassRef} onSubmit={handlePasswordSubmit} className="space-y-5 animate-fade-in-down">
 
-                  {/* Ô nhập Mật khẩu Cũ (Ai cũng phải nhập) */}
+                {/* Mật khẩu mới */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">🔒 Mật khẩu hiện tại</label>
-                    <input name="old_password" type="password" required placeholder="Nhập mật khẩu đang dùng..." className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all" />
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      🔑 Mật khẩu mới
+                    </label>
+                    <input
+                      name="new_password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Ít nhất 6 ký tự..."
+                      className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Ô nhập Mật khẩu Mới */}
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">🔑 Mật khẩu mới</label>
-                      <input name="new_password" type="password" required minLength={6} placeholder="Ít nhất 6 ký tự..." className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all" />
-                    </div>
-
-                    {/* Ô Nhập lại Mật khẩu Mới */}
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">✅ Nhập lại mật khẩu mới</label>
-                      <input name="confirm_new_password" type="password" required minLength={6} placeholder="Gõ lại y hệt bên kia..." className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all" />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      ✅ Nhập lại mật khẩu mới
+                    </label>
+                    <input
+                      name="confirm_new_password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Gõ lại y hệt bên kia..."
+                      className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all"
+                    />
                   </div>
+                </div>
 
-                  {/* Ô nhập OTP (Chỉ hiện cho người lớn) */}
-                  {(profile?.role === 'teacher' || profile?.role === 'parent') && (
-                    <div className="pt-2">
-                      <label className="block text-sm font-bold text-rose-600 mb-2">📩 Mã xác nhận OTP (Kiểm tra Email)</label>
-                      <input name="otp_code" type="text" required placeholder="Nhập 6 số..." maxLength={6} className="w-full px-4 py-3 text-center text-xl tracking-widest font-black border-2 border-rose-200 bg-rose-50 rounded-2xl focus:outline-none focus:border-rose-500 transition-all" />
-                    </div>
-                  )}
+                {/* MESSAGE */}
+                {passMessage && (
+                  <div
+                    className={`p-3 rounded-xl text-sm font-bold text-center ${passMessage.includes('thành công')
+                      ? 'bg-green-100 text-green-600 border-2 border-green-300'
+                      : 'bg-red-100 text-red-600 border-2 border-red-300'
+                      }`}
+                  >
+                    {passMessage}
+                  </div>
+                )}
 
-                  {passMessage && <div className={`p-3 rounded-xl text-sm font-bold text-center ${passMessage.includes('thành công') ? 'bg-green-100 text-green-600 border-2 border-green-300' : 'bg-red-100 text-red-600 border-2 border-red-300'}`}>{passMessage}</div>}
-
-                  <button type="submit" disabled={isChangingPass} className="w-full py-4 px-4 text-lg font-black text-white rounded-2xl bg-gradient-to-r from-rose-400 to-rose-600 shadow-[0_6px_0_rgb(225,29,72)] hover:shadow-[0_4px_0_rgb(225,29,72)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-none transition-all disabled:opacity-50 mt-4">
-                    {isChangingPass ? '⏳ ĐANG XỬ LÝ...' : '💥 ĐỔI MẬT KHẨU NGAY!'}
-                  </button>
-                </form>
-              )}
+                {/* BUTTON */}
+                <button
+                  type="submit"
+                  disabled={isChangingPass}
+                  className="w-full py-4 px-4 text-lg font-black text-white rounded-2xl bg-gradient-to-r from-rose-400 to-rose-600 shadow-[0_6px_0_rgb(225,29,72)] hover:shadow-[0_4px_0_rgb(225,29,72)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-none transition-all disabled:opacity-50 mt-4"
+                >
+                  {isChangingPass ? '⏳ ĐANG XỬ LÝ...' : '💥 ĐỔI MẬT KHẨU NGAY!'}
+                </button>
+              </form>
             </div>
 
           </div>

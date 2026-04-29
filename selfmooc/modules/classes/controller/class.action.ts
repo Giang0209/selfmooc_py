@@ -165,11 +165,11 @@ export async function getAttendanceHistoryAction(classId: number) {
 
     // Thuật toán Gom nhóm dữ liệu theo ngày (session_date)
     const groupedData: Record<string, any[]> = {};
-    
+
     rawData.forEach(row => {
       // Chuyển đổi định dạng ngày thành chuỗi DD/MM/YYYY
       const dateStr = new Date(row.session_date).toLocaleDateString('vi-VN');
-      
+
       if (!groupedData[dateStr]) {
         groupedData[dateStr] = [];
       }

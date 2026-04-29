@@ -36,6 +36,17 @@ export default function StudentClassDetailPage({ classId }: { classId: number })
 
   const formatDate = (dateStr: string) => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(dateStr));
 
+  //Search
+  const [search, setSearch] = useState('');
+  const [filteredMaterials, setFilteredMaterials] = useState<any[]>([]);
+
+  useEffect(() => {
+    const filtered = materials.filter(doc =>
+      doc.title?.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredMaterials(filtered);
+  }, [search, materials]);
+
   return (
     <div className="max-w-6xl mx-auto pb-10">
 
@@ -128,11 +139,33 @@ export default function StudentClassDetailPage({ classId }: { classId: number })
       {/* ======================= */}
       {activeTab === 'materials' && (
         <div className="animate-fade-in">
+          {/* 🔍 SEARCH + SORT */}
+          <div className="mb-6 flex gap-3 items-center">
+            <input
+              type="text"
+              placeholder="🔍 Tìm tài liệu..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-5 py-3 border-2 border-gray-200 rounded-2xl w-full max-w-md focus:outline-none focus:border-emerald-400"
+            />
+
+            <button
+              onClick={() => {
+                const sorted = [...filteredMaterials].sort((a, b) =>
+                  (a.title || '').localeCompare(b.title || '')
+                );
+                setFilteredMaterials(sorted);
+              }}
+              className="px-4 py-3 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200"
+            >
+              🔤 A-Z
+            </button>
+          </div>
           {isLoading ? <div className="text-center font-bold text-gray-400 animate-pulse py-10">Đang lục tìm sách vở...</div>
-            : materials.length === 0 ? <div className="bg-white rounded-3xl p-12 text-center border-4 border-dashed border-gray-200"><span className="text-5xl block mb-4">📂</span><p className="font-bold text-gray-500">Chưa có tài liệu nào được đăng.</p></div>
+            : filteredMaterials.length === 0 ? <div className="bg-white rounded-3xl p-12 text-center border-4 border-dashed border-gray-200"><span className="text-5xl block mb-4">📂</span><p className="font-bold text-gray-500">Chưa có tài liệu nào được đăng.</p></div>
               : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {materials.map((doc) => (
+                  {filteredMaterials.map((doc) => (
                     <div key={doc.document_id} className="bg-white rounded-3xl p-6 border-4 border-emerald-50 shadow-sm hover:border-emerald-200 transition-colors flex items-center justify-between group">
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl font-black uppercase">

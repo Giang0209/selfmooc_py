@@ -8,13 +8,13 @@ import { UserProvider } from './user-provider'; // 👈 đổi import
 export default async function MessagingLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
-  
+
   const payload = JSON.parse(Buffer.from(token!.split('.')[1], 'base64').toString());
   const user = { ...payload, id: payload.id, role: payload.role };
   const isTeacher = user.role === 'teacher';
 
-  const chatList = isTeacher 
-    ? await getTeacherChatListService(user.id) 
+  const chatList = isTeacher
+    ? await getTeacherChatListService(user.id)
     : await getParentChatListService(user.id);
 
   return (
@@ -26,7 +26,7 @@ export default async function MessagingLayout({ children }: { children: React.Re
             <span>{isTeacher ? '👨‍🏫' : '👨‍👩‍👧'}</span> {isTeacher ? 'Phụ Huynh' : 'Giảng Viên'}
           </h2>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
           {chatList.map((contact: any) => (
             <Link key={contact.contact_id} href={`/chats/${contact.contact_id}`}>
@@ -35,12 +35,21 @@ export default async function MessagingLayout({ children }: { children: React.Re
                   {isTeacher ? '👤' : '🎓'}
                 </div>
                 <div className="overflow-hidden font-bold">
+
+                  {/* 👇 NAME CHÍNH */}
                   <p className="truncate text-sm text-gray-800">
-                    {isTeacher ? `PH. ${contact.contact_name}` : contact.contact_name}
+                    {contact.contact_name}
                   </p>
-                  <p className="text-[10px] text-emerald-500 uppercase truncate">
-                    {contact.sub_info}
+
+                  {/* 👇 INFO PHỤ (ROLE CONTEXT) */}
+                  <p className="text-[10px] text-emerald-500 truncate mt-0.5">
+                    {isTeacher ? (
+                      <>👨‍👩‍👧 PH: {contact.sub_info}</>
+                    ) : (
+                      <>👨‍🏫 GV: {contact.sub_info}</>
+                    )}
                   </p>
+
                 </div>
               </div>
             </Link>

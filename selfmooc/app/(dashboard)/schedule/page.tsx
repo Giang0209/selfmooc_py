@@ -45,15 +45,7 @@ function ScheduleContent() {
     <div style={{ minHeight: '100%', backgroundColor: '#AEE2FF', padding: '10px', fontFamily: 'inherit', borderRadius: '40px' }}>
       <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '40px', padding: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '10px solid rgba(255,255,255,0.5)', position: 'relative' }}>
 
-        {/* NÚT QUAY LẠI (Nếu là phụ huynh) */}
-        {displayInfo?.viewingAsChild && (
-          <button
-            onClick={() => router.back()}
-            style={{ position: 'absolute', top: '20px', left: '20px', padding: '10px 20px', backgroundColor: '#F0F9FF', border: '2px solid #00AEEF', color: '#00AEEF', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            ⬅ Quay lại
-          </button>
-        )}
+
 
         {/* HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
