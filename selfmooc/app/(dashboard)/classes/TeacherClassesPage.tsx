@@ -82,7 +82,7 @@ export default function TeacherClassesPage() {
         </button>
       </div>
 
-      {/* 🔍 SEARCH + SORT */}
+      {/*Search*/}
       <div className="mb-6 flex gap-3 items-center">
         <input
           type="text"
