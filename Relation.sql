@@ -193,7 +193,9 @@ CREATE TABLE document (
     chapter      VARCHAR(128),
     file_ext     VARCHAR(16),                  -- 'pdf','docx','mp4'...
     file_size_kb INTEGER,
-    mongo_id     TEXT NOT NULL,                -- → MongoDB document_content
+    --mongo_id     TEXT NOT NULL,   
+    file_url        TEXT NOT NULL,
+    cloudinary_id   TEXT NOT NULL,             -- → MongoDB document_content
 
     is_visible   BOOLEAN NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),

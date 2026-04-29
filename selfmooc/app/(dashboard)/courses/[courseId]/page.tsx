@@ -79,8 +79,14 @@ export default function CourseDetailPage() {
     setIsUploading(true);
 
     try {
+      const form = e.target as HTMLFormElement;
+
+      // ======================
+      // 1. UPLOAD FILE TRƯỚC
+      // ======================
       const uploadForm = new FormData();
       uploadForm.append('file', selectedFile);
+      uploadForm.append('type', 'course');
 
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
@@ -88,29 +94,43 @@ export default function CourseDetailPage() {
       });
 
       const uploadData = await uploadRes.json();
-      if (!uploadData.success) throw new Error(uploadData.message);
 
-      const fileId = uploadData.fileId;
+      if (!uploadData.success) {
+        throw new Error(uploadData.message);
+      }
 
-      // 🔥 FIX Ở ĐÂY
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
+      const { fileUrl, cloudinaryId } = uploadData;
 
-      formData.append('course_id', courseId.toString());
-      formData.append('gridfs_file_id', fileId);
+      // ======================
+      // 2. BUILD FORM DATA CLEAN
+      // ======================
+      const formData = new FormData();
 
-      const ext = selectedFile.name.split('.').pop()?.toLowerCase() || 'unknown';
-      const sizeKb = Math.round(selectedFile.size / 1024);
+      const title = (form.querySelector('input[name="title"]') as HTMLInputElement)?.value;
+      const docType = (form.querySelector('select[name="doc_type"]') as HTMLSelectElement)?.value;
 
-      formData.append('file_ext', ext);
-      formData.append('file_size_kb', sizeKb.toString());
+      if (!title) throw new Error("Thiếu title");
 
+      formData.set('title', title);
+      formData.set('doc_type', docType || 'lecture');
+      formData.set('course_id', courseId.toString());
+
+      formData.set('file_url', fileUrl);
+      formData.set('cloudinary_id', cloudinaryId);
+
+      formData.set('file_ext', selectedFile.name.split('.').pop()?.toLowerCase() || 'unknown');
+      formData.set('file_size_kb', String(Math.round(selectedFile.size / 1024)));
+
+      // ======================
+      // 3. CALL ACTION
+      // ======================
       const result = await createCourseDocAction(formData);
 
       if (result.success) {
-        form.reset(); // 🔥 cũng sửa luôn
+        form.reset();
         setSelectedFile(null);
-        loadAllData();
+
+        await loadAllData(); // reload lại docs
       } else {
         alert(result.message);
       }
@@ -121,6 +141,7 @@ export default function CourseDetailPage() {
 
     setIsUploading(false);
   };
+
   const handleDeleteDoc = async (docId: number) => {
     if (window.confirm('Xóa tài liệu này?')) {
       const res = await deleteCourseDocAction(docId, courseId);

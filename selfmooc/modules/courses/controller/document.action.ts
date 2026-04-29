@@ -3,86 +3,124 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-// 🎯 Import thêm hàm uploadFileToMongoGridFS
-import { getCourseDocumentsService, createCourseDocumentService, deleteDocumentService } from '../services/document.service';
 
+
+import {
+  getCourseDocumentsService,
+  createCourseDocumentService,
+  deleteCourseDocumentService
+} from '../services/document.service';
+
+// =======================
+// AUTH HELPER
+// =======================
 function getUserFromToken(token: string) {
   try {
     const payload = token.split('.')[1];
     return JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
+// =======================
+// 1. GET DOCUMENTS
+// =======================
 export async function getCourseDocsAction(courseId: number) {
   try {
     const docs = await getCourseDocumentsService(courseId);
     return { success: true, data: docs };
-  } catch (error) {
+  } catch (err) {
     return { success: false, data: [] };
   }
 }
 
+// =======================
+// 2. CREATE DOCUMENT
+// =======================
 export async function createCourseDocAction(formData: FormData) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
-  if (!token) return { success: false, message: 'Chưa đăng nhập' };
+
+  if (!token) {
+    return { success: false, message: 'Chưa đăng nhập' };
+  }
 
   const user = getUserFromToken(token);
-  if (!user || user.role !== 'teacher') return { success: false, message: 'Chỉ giáo viên mới được thao tác' };
 
-  const courseId = Number(formData.get('course_id'));
-
-  //  LẤY FILE ID TỪ FRONTEND
-  const gridFsFileId = formData.get('gridfs_file_id') as string;
-  if (!gridFsFileId) {
-    return { success: false, message: 'Thiếu fileId (chưa upload file)' };
+  if (!user || user.role !== 'teacher') {
+    return { success: false, message: 'Không có quyền' };
   }
 
   const schema = z.object({
-    title: z.string().min(3, 'Tên tài liệu quá ngắn'),
-    doc_type: z.enum(["lecture", "exercise", "reference", "video", "other"])
-      .refine(val => !!val, { message: "Invalid document type" }),
+    title: z.string().min(3),
+    doc_type: z.enum(["lecture", "exercise", "reference", "video", "other"]),
     chapter: z.string().optional(),
     description: z.string().optional(),
+    file_url: z.string().url(),
+    cloudinary_id: z.string(),
     file_ext: z.string().optional(),
-    file_size_kb: z.coerce.number().optional()
+    file_size_kb: z.coerce.number().optional(),
+    course_id: z.coerce.number()
   });
 
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return { success: false, message: parsed.error.issues[0].message };
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: parsed.error.issues[0].message
+    };
+  }
 
   try {
+    await createCourseDocumentService(user.id, parsed.data);
 
+    revalidatePath(`/courses/${parsed.data.course_id}`);
 
-    // Truyền ID này xuống để Service lưu vào trường storage_url
-    await createCourseDocumentService(user.id, {
-      ...parsed.data,
-      course_id: courseId,
-      gridfs_file_id: gridFsFileId
-    });
+    return {
+      success: true,
+      message: 'Upload tài liệu khóa học thành công 🚀'
+    };
 
-    // Reset lại cache của trang (Sửa lại path cho đúng với thư mục bạn chụp ảnh)
-    revalidatePath(`/courses/${courseId}`);
-    return { success: true, message: '📄 Đã lưu file thẳng vào Database thành công!' };
-  } catch (error: any) {
-    console.error(error);
-    return { success: false, message: 'Lỗi khi lưu file: ' + error.message };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message
+    };
   }
 }
 
-export async function deleteCourseDocAction(documentId: number, courseId: number) {
+// =======================
+// 3. DELETE DOCUMENT
+// =======================
+export async function deleteCourseDocAction(
+  documentId: number,
+  courseId: number
+) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
+
   const user = token ? getUserFromToken(token) : null;
-  if (!user || user.role !== 'teacher') return { success: false, message: 'Không có quyền' };
+
+  if (!user || user.role !== 'teacher') {
+    return { success: false, message: 'Không có quyền' };
+  }
 
   try {
-    await deleteDocumentService(documentId, user.id);
+    await deleteCourseDocumentService(documentId, user.id);
+
     revalidatePath(`/courses/${courseId}`);
-    return { success: true, message: '🗑️ Đã xóa tài liệu' };
-  } catch (error: any) {
-    return { success: false, message: error.message };
+
+    return {
+      success: true,
+      message: 'Đã xoá tài liệu 🗑️'
+    };
+
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message
+    };
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToGridFS } from '@/modules/shared/services/file.service';
+import cloudinary from '@/lib/cloudinary';
 
 export async function POST(req: NextRequest) {
     try {
@@ -13,29 +13,29 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 🎯 lấy loại upload: course | class
         const type = formData.get('type') as string;
 
-        let bucketName = 'course_files'; // default
-
-        if (type === 'class') {
-            bucketName = 'class_files';
-        }
-
-        // convert file → buffer
         const buffer = Buffer.from(await file.arrayBuffer());
 
-        // upload
-        const fileId = await uploadFileToGridFS(
-            buffer,
-            file.name,
-            file.type,
-            bucketName
-        );
+        const result: any = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: type === 'class' ? 'classes' : 'courses',
+                    resource_type: 'auto', // hỗ trợ pdf, pptx, mp4
+                },
+                (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result);
+                }
+            );
+
+            uploadStream.end(buffer);
+        });
 
         return NextResponse.json({
             success: true,
-            fileId
+            fileUrl: result.secure_url,
+            cloudinaryId: result.public_id,
         });
 
     } catch (error: any) {

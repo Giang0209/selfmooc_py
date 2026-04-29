@@ -4,89 +4,103 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
-// 🎯 IMPORT SERVICE CỦA CLASS (không dùng course nữa)
+
 import {
     getClassDocumentsService,
     createClassDocumentService,
     deleteClassDocumentService
 } from '../services/document.service';
 
+// =======================
+// AUTH HELPER
+// =======================
 function getUserFromToken(token: string) {
     try {
         const payload = token.split('.')[1];
         return JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
-    } catch (error) {
+    } catch {
         return null;
     }
 }
 
-// 1. LẤY DANH SÁCH TÀI LIỆU THEO CLASS
+// =======================
+// 1. GET
+// =======================
 export async function getClassDocsAction(classId: number) {
     try {
-        const docs = await getClassDocumentsService(classId);
-        return { success: true, data: docs };
-    } catch (error) {
+        const data = await getClassDocumentsService(classId);
+        return { success: true, data };
+    } catch {
         return { success: false, data: [] };
     }
 }
 
-// 2. TẠO TÀI LIỆU CHO CLASS
+// =======================
+// 2. CREATE
+// =======================
 export async function createClassDocAction(formData: FormData) {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    if (!token) return { success: false, message: 'Chưa đăng nhập' };
 
-    const user = getUserFromToken(token);
-    if (!user || user.role !== 'teacher') {
-        return { success: false, message: 'Chỉ giáo viên mới được thao tác' };
+    if (!token) {
+        return { success: false, message: 'Chưa đăng nhập' };
     }
 
-    const classId = Number(formData.get('class_id'));
+    const user = getUserFromToken(token);
 
-    const gridFsFileId = formData.get('gridfs_file_id') as string;
-    if (!gridFsFileId) {
-        return { success: false, message: 'Thiếu fileId (chưa upload file)' };
+    if (!user || user.role !== 'teacher') {
+        return { success: false, message: 'Không có quyền' };
     }
 
     const schema = z.object({
-        title: z.string().min(3, 'Tên tài liệu quá ngắn'),
+        title: z.string().min(3),
         doc_type: z.enum(["lecture", "exercise", "reference", "video", "other"]),
         chapter: z.string().optional(),
         description: z.string().optional(),
+        file_url: z.string().url(),
+        cloudinary_id: z.string(),
         file_ext: z.string().optional(),
-        file_size_kb: z.coerce.number().optional()
+        file_size_kb: z.coerce.number().optional(),
+        class_id: z.coerce.number()
     });
 
     const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
+
     if (!parsed.success) {
-        return { success: false, message: parsed.error.issues[0].message };
+        return {
+            success: false,
+            message: parsed.error.issues[0].message
+        };
     }
 
     try {
-        await createClassDocumentService(user.id, {
-            ...parsed.data,
-            class_id: classId, // 🎯 KHÁC COURSE
-            gridfs_file_id: gridFsFileId
-        });
+        await createClassDocumentService(user.id, parsed.data);
 
-        revalidatePath(`/classes/${classId}`);
+        revalidatePath(`/classes/${parsed.data.class_id}`);
 
         return {
             success: true,
-            message: '📄 Upload tài liệu cho lớp thành công!'
+            message: 'Upload tài liệu lớp thành công 🚀'
         };
-    } catch (error: any) {
+
+    } catch (err: any) {
         return {
             success: false,
-            message: 'Lỗi khi lưu file: ' + error.message
+            message: err.message
         };
     }
 }
 
-// 3. XÓA TÀI LIỆU CLASS
-export async function deleteClassDocAction(documentId: number, classId: number) {
+// =======================
+// 3. DELETE
+// =======================
+export async function deleteClassDocAction(
+    documentId: number,
+    classId: number
+) {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
+
     const user = token ? getUserFromToken(token) : null;
 
     if (!user || user.role !== 'teacher') {
@@ -100,12 +114,13 @@ export async function deleteClassDocAction(documentId: number, classId: number) 
 
         return {
             success: true,
-            message: '🗑️ Đã xóa tài liệu lớp'
+            message: 'Đã xoá tài liệu lớp 🗑️'
         };
-    } catch (error: any) {
+
+    } catch (err: any) {
         return {
             success: false,
-            message: error.message
+            message: err.message
         };
     }
 }

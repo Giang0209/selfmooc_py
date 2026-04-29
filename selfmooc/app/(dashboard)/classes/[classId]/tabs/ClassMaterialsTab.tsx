@@ -35,44 +35,60 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!selectedFile) return alert("⚠️ Chọn file trước!");
+    const form = e.target as HTMLFormElement; // ✅ FIX cốt lõi
+    const file = fileInputRef.current?.files?.[0];
+
+    if (!file) {
+      alert("⚠️ Thiếu file");
+      return;
+    }
 
     setIsUploading(true);
 
     try {
       // 1. upload file
       const uploadForm = new FormData();
-      uploadForm.append('file', selectedFile);
+      uploadForm.append('file', file);
+      uploadForm.append('type', 'class');
 
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
-        body: uploadForm
+        body: uploadForm,
       });
 
       const uploadData = await uploadRes.json();
-      if (!uploadData.success) throw new Error(uploadData.message);
 
-      const fileId = uploadData.fileId;
+      if (!uploadData.success) {
+        throw new Error(uploadData.message);
+      }
 
-      // 2. tạo document class
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
+      const { fileUrl, cloudinaryId } = uploadData;
 
-      formData.append('class_id', classId.toString());
-      formData.append('gridfs_file_id', fileId);
+      // 2. build form an toàn (KHÔNG dùng from(form) nữa)
+      const formData = new FormData();
 
-      const ext = selectedFile.name.split('.').pop()?.toLowerCase() || 'unknown';
-      const sizeKb = Math.round(selectedFile.size / 1024);
+      const title = (form.querySelector('input[name="title"]') as HTMLInputElement)?.value;
+      const docType = (form.querySelector('select[name="doc_type"]') as HTMLSelectElement)?.value;
 
-      formData.append('file_ext', ext);
-      formData.append('file_size_kb', sizeKb.toString());
+      if (!title) {
+        throw new Error("Thiếu title");
+      }
 
-      // 👉 đổi sang class action
+      formData.set('title', title);
+      formData.set('doc_type', docType || 'lecture');
+      formData.set('class_id', classId.toString());
+      formData.set('file_url', fileUrl);
+      formData.set('cloudinary_id', cloudinaryId);
+      formData.set('file_ext', file.name.split('.').pop()?.toLowerCase() || 'unknown');
+      formData.set('file_size_kb', String(Math.round(file.size / 1024)));
+
       const res = await createClassDocAction(formData);
 
       if (res.success) {
         setIsOpenModal(false);
         setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
         const reload = await getClassMaterialsAction(classId);
         if (reload.success) setMaterials(reload.data);
       } else {
@@ -81,9 +97,9 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
 
     } catch (err: any) {
       alert("❌ Upload lỗi: " + err.message);
+    } finally {
+      setIsUploading(false);
     }
-
-    setIsUploading(false);
   };
 
   useEffect(() => {
@@ -100,12 +116,8 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
   const [search, setSearch] = useState('');
   const [filteredMaterials, setFilteredMaterials] = useState<any[]>([]);
   useEffect(() => {
-    setFilteredMaterials(materials);
-  }, [materials]);
-
-  useEffect(() => {
     const filtered = materials.filter(doc =>
-      doc.title.toLowerCase().includes(search.toLowerCase())
+      (doc.title || '').toLowerCase().includes(search.toLowerCase())
     );
     setFilteredMaterials(filtered);
   }, [search, materials]);
@@ -132,8 +144,8 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
 
         <button
           onClick={() => {
-            const sorted = [...filteredMaterials].sort((a, b) =>
-              a.title.localeCompare(b.title)
+            const sorted = [...materials].sort((a, b) =>
+              (a.title || '').localeCompare(b.title || '')
             );
             setFilteredMaterials(sorted);
           }}
@@ -145,7 +157,7 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
 
       {isLoadingMaterials ? (
         <div className="text-center py-20 text-emerald-500 animate-pulse font-bold">Đang tải kho học liệu...</div>
-      ) : materials.length === 0 ? (
+      ) : filteredMaterials.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border-2 border-gray-200 border-dashed shadow-sm">
           <span className="text-6xl mb-4 block grayscale opacity-50">📂</span>
           <h3 className="text-xl font-bold text-gray-400 mb-2">Chưa có tài liệu nào</h3>
@@ -153,7 +165,7 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {materials.map((doc) => (
+          {filteredMaterials.map((doc) => (
             <div key={doc.document_id} className="bg-white p-5 rounded-2xl border-2 border-gray-100 flex items-center justify-between hover:border-emerald-300 shadow-sm transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl font-bold uppercase border border-emerald-100">
@@ -170,13 +182,13 @@ export default function ClassMaterialsTab({ classId }: { classId: number }) {
               </div>
 
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {doc.storage_url && doc.storage_url !== '#' && (
+                {doc.file_url && doc.file_url !== '#' && (
                   <>
-                    <a href={doc.storage_url} target="_blank" rel="noopener noreferrer"
+                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
                       className="w-10 h-10 bg-gray-100 text-sky-500 rounded-full flex items-center justify-center hover:bg-sky-500 hover:text-white transition-all shadow-sm font-bold">
                       👁️
                     </a>
-                    <a href={`${doc.storage_url}?download=1`}
+                    <a href={`${doc.file_url}?download=1`}
                       className="w-10 h-10 bg-gray-100 text-emerald-500 rounded-full flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm font-bold">
                       ⬇️
                     </a>
